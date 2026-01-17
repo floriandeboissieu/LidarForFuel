@@ -52,7 +52,7 @@ fCBDprofile_fuelmetrics <- function(
   limit_vegetationheight = 0.1,
   H_PAI = 0, omega = 0.77, d = 1, G = 0.5
 ) {
-  if (class(datatype)[1] == "LAS") {
+  if (inherits(datatype, "LAS")) {
     X <- datatype$X
     Y <- datatype$Y
     Z <- datatype$Z
@@ -67,41 +67,48 @@ fCBDprofile_fuelmetrics <- function(
   }
   date <- mean(gpstime)
   library(data.table)
+
+
+  # null VVP_metrics_CBD
+  null_VVP_metrics_CBD <- rep(-1, 150)
+  names(null_VVP_metrics_CBD) <- paste0("CBD_", rep(1:150))
+
+  null_VVP_metrics <- c(
+    Profil_Type = -1,
+    Profil_Type_L = -1,
+    threshold = -1,
+    Height = -1,
+    CBH = -1,
+    FSG = -1,
+    Top_Fuel = -1,
+    H_Bush = -1,
+    continuity = -1,
+    VCI_PAD = -1,
+    VCI_lidr = -1,
+    entropy_lidr = -1,
+    PAI_tot = -1,
+    CBD_max = -1,
+    CFL = -1,
+    TFL = -1,
+    MFL = -1,
+    FL_1_3 = -1,
+    GSFL = -1,
+    FL_0_1 = -1,
+    FMA = -1,
+    date = date,
+    Cover = -1,
+    Cover_4 = -1,
+    Cover_6 = -1
+  )
+
+
   if (length(Z) < limit_N_points) {
     warning("NULL return: The number of point < limit_N_points: check your tile or you pointcloud")
-    VVP_metrics <- c(
-      Profil_Type = -1,
-      Profil_Type_L = -1,
-      threshold = -1,
-      Height = -1,
-      CBH = -1,
-      FSG = -1,
-      Top_Fuel = -1,
-      H_Bush = -1,
-      continuity = -1,
-      VCI_PAD = -1,
-      VCI_lidr = -1,
-      entropy_lidr = -1,
-      PAI_tot = -1,
-      CBD_max = -1,
-      CFL = -1,
-      TFL = -1,
-      MFL = -1,
-      FL_1_3 = -1,
-      GSFL = -1,
-      FL_0_1 = -1,
-      FMA = -1,
-      date = date,
-      Cover = -1,
-      Cover_4 = -1,
-      Cover_6 = -1
-    )
-    VVP_metrics_CBD <- rep(-1, 150)
-    names(VVP_metrics_CBD) <- paste0("CBD_", rep(1:150))
-    VVP_metrics <- c(VVP_metrics, VVP_metrics_CBD)
+
+    VVP_metrics <- c(null_VVP_metrics, null_VVP_metrics_CBD)
     PAD_CBD_Profile <- NULL
     # names(VVP_metrics) <- , )
-    if (class(datatype)[1] == "LAS") {
+    if (inherits(datatype, "LAS")) {
       return(list(VVP_metrics, PAD_CBD_Profile))
     }
     if (datatype == "Pixel") {
@@ -146,12 +153,9 @@ fCBDprofile_fuelmetrics <- function(
   if (mean(norm_U, na.rm = TRUE) < limit_flightheight) {
     warning("NULL return: limit_flightheight below the threshold. Check your trajectory and avoid using scanning_angle mode if the trajectory is uncertain")
 
-    VVP_metrics <- c(Profil_Type = -1, Profil_Type_L = -1, threshold = -1, Height = -1, CBH = -1, FSG = -1, Top_Fuel = -1, H_Bush = -1, continuity = -1, VCI_PAD = -1, VCI_lidr = -1, entropy_lidr = -1, PAI_tot = -1, CBD_max = -1, CFL = -1, TFL = -1, MFL = -1, FL_1_3 = -1, GSFL = -1, FL_0_1 = -1, FMA = -1, date = date, Cover = -1, Cover_4 = -1, Cover_6 = -1)
-    VVP_metrics_CBD <- rep(-1, 150)
-    VVP_metrics <- c(VVP_metrics, VVP_metrics_CBD)
+    VVP_metrics <- c(null_VVP_metrics, null_VVP_metrics_CBD)
     PAD_CBD_Profile <- NULL
-    names(VVP_metrics) <- c("Profil_Type", "Profil_Type_L", "threshold", "Height", "CBH", "FSG", "Top_Fuel", "H_Bush", "continuity", "VCI_PAD", "VCI_lidr", "entropy_lidr", "PAI_tot", "CBD_max", "CFL", "TFL", "MFL", "FL_1_3", "GSFL", "FL_0_1", "FMA", "date", "Cover", "Cover_4", "Cover_6", paste0("CBD_", rep(1:150)))
-    if (class(datatype)[1] == "LAS") {
+    if (inherits(datatype, "LAS")) {
       return(list(VVP_metrics, PAD_CBD_Profile))
     }
     if (datatype == "Pixel") {
@@ -187,7 +191,7 @@ fCBDprofile_fuelmetrics <- function(
   SD_PAD[NRD == 1] <- (2 / d) * sqrt(2 + 1 / N[NRD == 1])
 
   ### LMA from g/cm² to kg.m2
-  LMA <- mean(LMA, na.rm = T) / 1000
+  LMA <- mean(LMA, na.rm = TRUE) / 1000
 
   ## Partition of fuel surface (fine branch vs leaves) ----
   ### Wood density (kg/m3)
@@ -225,11 +229,8 @@ fCBDprofile_fuelmetrics <- function(
   ### no data above 0.5m
   if (max(PAD_CBD_Profile$H) < limit_vegetationheight) {
     warning(paste0("NULL (-1) return: no data above", limit_vegetationheight, "m height"))
-    VVP_metrics <- c(Profil_Type = -1, Profil_Type_L = -1, threshold = -1, Height = -1, CBH = -1, FSG = -1, Top_Fuel = -1, H_Bush = -1, continuity = -1, VCI_PAD = -1, VCI_lidr = -1, entropy_lidr = -1, PAI_tot = -1, CBD_max = -1, CFL = -1, TFL = -1, MFL = -1, FL_1_3 = -1, GSFL = -1, FL_0_1 = -1, FMA = -1, date = date, Cover = -1, Cover_4 = -1, Cover_6 = -1)
-    VVP_metrics_CBD <- rep(-1, 150)
-    VVP_metrics <- c(VVP_metrics, VVP_metrics_CBD)
-    names(VVP_metrics) <- c("Profil_Type", "Profil_Type_L", "threshold", "Height", "CBH", "FSG", "Top_Fuel", "H_Bush", "continuity", "VCI_PAD", "VCI_lidr", "entropy_lidr", "PAI_tot", "CBD_max", "CFL", "TFL", "MFL", "FL_1_3", "GSFL", "FL_0_1", "FMA", "date", "Cover", "Cover_4", "Cover_6", paste0("CBD_", rep(1:150)))
-    if (class(datatype)[1] == "LAS") {
+    VVP_metrics <- c(null_VVP_metrics, null_VVP_metrics_CBD)
+    if (inherits(datatype, "LAS")) {
       return(list(VVP_metrics, PAD_CBD_Profile))
     }
     if (datatype == "Pixel") {
@@ -250,11 +251,8 @@ fCBDprofile_fuelmetrics <- function(
   }
   ### No data
   if (nrow(PAD_CBD_Profile_threshold) == 0) {
-    VVP_metrics <- c(Profil_Type = -1, Profil_Type_L = -1, threshold = -1, Height = -1, CBH = -1, FSG = -1, Top_Fuel = -1, H_Bush = -1, continuity = -1, VCI_PAD = -1, VCI_lidr = -1, entropy_lidr = -1, PAI_tot = -1, CBD_max = -1, CFL = -1, TFL = -1, MFL = -1, FL_1_3 = -1, GSFL = -1, FL_0_1 = -1, FMA = -1, date = date, Cover = -1, Cover_4 = -1, Cover_6 = -1)
-    VVP_metrics_CBD <- rep(-1, 150)
-    VVP_metrics <- c(VVP_metrics, VVP_metrics_CBD)
-    names(VVP_metrics) <- c("Profil_Type", "Profil_Type_L", "threshold", "Height", "CBH", "FSG", "Top_Fuel", "H_Bush", "continuity", "VCI_PAD", "VCI_lidr", "entropy_lidr", "PAI_tot", "CBD_max", "CFL", "TFL", "MFL", "FL_1_3", "GSFL", "FL_0_1", "FMA", "date", "Cover", "Cover_4", "Cover_6", paste0("CBD_", rep(1:150)))
-    if (class(datatype)[1] == "LAS") {
+    VVP_metrics <- c(null_VVP_metrics, null_VVP_metrics_CBD)
+    if (inherits(datatype, "LAS")) {
       return(list(VVP_metrics, PAD_CBD_Profile))
     }
     if (datatype == "Pixel") {
@@ -362,16 +360,46 @@ fCBDprofile_fuelmetrics <- function(
     GSFL <- sum(PAD_CBD_Profile[H > H_Bush & H <= CBH]$CBD_rollM) * d
   }
 
+  # cbind is a trick to get directly a named vector
+  VVP_metrics <- cbind(
+    Profil_Type,
+    Profil_Type_L,
+    threshold,
+    Height,
+    CBH,
+    FSG,
+    Top_Fuel,
+    H_Bush,
+    continuity,
+    VCI_PAD,
+    VCI_lidr,
+    entropy_lidr,
+    PAI_tot,
+    CBD_max,
+    CFL,
+    TFL,
+    MFL,
+    FL_1_3,
+    GSFL,
+    FL_0_1,
+    FMA,
+    date,
+    Cover,
+    Cover_4,
+    Cover_6
+  )[1, ]
 
-  VVP_metrics <- c(Profil_Type, Profil_Type_L, threshold, Height, CBH, FSG, Top_Fuel, H_Bush, continuity, VCI_PAD, VCI_lidr, entropy_lidr, PAI_tot, CBD_max, CFL, TFL, MFL, FL_1_3, GSFL, FL_0_1, FMA, date, Cover, Cover_4, Cover_6)
+  # check metrics names
+  if (any(names(VVP_metrics) != names(c(null_VVP_metrics)))) {
+    stop("Some VVP metric names are missing or are not expected")
+  }
 
-  VVP_metrics_CBD <- rep(-1, 150)
+  VVP_metrics_CBD <- null_VVP_metrics_CBD
   VVP_metrics_CBD[1:length(PAD_CBD_Profile$CBD_rollM)] <- PAD_CBD_Profile$CBD_rollM
+
   VVP_metrics <- c(VVP_metrics, VVP_metrics_CBD)
 
-  names(VVP_metrics) <- c("Profil_Type", "Profil_Type_L", "threshold", "Height", "CBH", "FSG", "Top_Fuel", "H_Bush", "continuity", "VCI_PAD", "VCI_lidr", "entropy_lidr", "PAI_tot", "CBD_max", "CFL", "TFL", "MFL", "FL_1_3", "GSFL", "FL_0_1", "FMA", "date", "Cover", "Cover_4", "Cover_6", paste0("CBD_", rep(1:150)))
-
-  if (class(datatype)[1] == "LAS") {
+  if (inherits(datatype, "LAS")) {
     return(list(VVP_metrics, PAD_CBD_Profile))
   }
   if (datatype == "Pixel") {
