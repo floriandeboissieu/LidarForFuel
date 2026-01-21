@@ -66,7 +66,7 @@ fCBDprofile_fuelmetrics <- function(
     gpstime <- datatype$gpstime
   }
   date <- mean(gpstime)
-  library(data.table)
+  # library(data.table)
 
 
   # null VVP_metrics_CBD
