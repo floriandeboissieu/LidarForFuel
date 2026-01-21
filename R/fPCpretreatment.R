@@ -117,7 +117,6 @@ get_traj <- function(las, thin = 0.0001, interval = .2, rmdup = TRUE, renum = TR
 
   traj <- try(
     {
-      lidR:::track_sensor.LAS()
       traj <- lidR::track_sensor(
         las,
         algorithm = lidR::Roussel2020(interval = interval),
@@ -129,7 +128,18 @@ get_traj <- function(las, thin = 0.0001, interval = .2, rmdup = TRUE, renum = TR
     silent = TRUE
   )
 
-  if (inherits(traj, "try-error") || nrow(traj) == 0) {
+  try_default_traj <- FALSE
+  if (inherits(traj, "try-error")) {
+    warning("Failed to compute trajectory with lidR::track_sensor.")
+    try_default_traj <- TRUE
+  }
+  if (nrow(traj) == 0) {
+    warning("Trajectory computed with lidR::track_sensor is empty.")
+    try_default_traj <- TRUE
+  }
+
+  if (try_default_traj) {
+    warning("Setting default trajectory to 1400m above of the ground points.")
     traj <- lidR::filter_ground(las)@data[, .(gpstime, X, Y, Z)]
     if (nrow(traj) == 0) {
       warning("No ground point found, trajectory cannot be computed.")
@@ -137,7 +147,6 @@ get_traj <- function(las, thin = 0.0001, interval = .2, rmdup = TRUE, renum = TR
     }
     traj <- traj[, .(Easting = mean(X), Northing = mean(Y), Elevation = mean(Z) + 1400), by = "gpstime"]
     traj <- traj[, .(Easting, Northing, Elevation, Time = gpstime)]
-    warning("Trajectory could not be computed, setting it to 1400m above of the ground points.")
   }
 
   return(traj)
@@ -205,7 +214,11 @@ fPCpretreatment <- function(
   X <- Z <- Classification <- NULL
 
   # read chunk
-  las <- lidR::readLAS(chunk)
+  if (inherits(chunk, "LAS")) {
+    las <- chunk
+  } else {
+    las <- lidR::readLAS(chunk)
+  }
   # TODO: filter virtual points, cf virtual classes in lidar-hd specs
   las <- filter_seasons(las, season_filter, plot_hist_days = plot_hist_days)
   las <- filter_date_mode(las, deviation_days, plot_hist_days = plot_hist_days)
@@ -263,7 +276,7 @@ fPCpretreatment <- function(
 
   # Normalyze height
   las <- lidR::normalize_height(las = las, algorithm = lidR::tin())
-  # Remove points too low (<-3) or too high (>35m). Keep vegetation, soil, non classified and water point only
+  # Remove points too low (<-3) or too high (>35m). Keep vegetation, ground, unclassified and water point only
   las <- lidR::filter_poi(las, (Classification <= 5 | Classification == 9) & Z < Height_filter)
   las <- lidR::classify_noise(las, lidR::sor(5, 10))
 
