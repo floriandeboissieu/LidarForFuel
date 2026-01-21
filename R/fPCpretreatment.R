@@ -142,7 +142,7 @@ get_traj <- function(las, thin = 0.0001, interval = .2, rmdup = TRUE, renum = TR
     warning("Setting default trajectory to 1400m above of the ground points.")
     traj <- lidR::filter_ground(las)@data[, .(gpstime, X, Y, Z)]
     if (nrow(traj) == 0) {
-      warning("No ground point found, trajectory cannot be computed.")
+      warning("No ground point found, cannot set default trajectory.")
       return(NULL)
     }
     traj <- traj[, .(Easting = mean(X), Northing = mean(Y), Elevation = mean(Z) + 1400), by = "gpstime"]
