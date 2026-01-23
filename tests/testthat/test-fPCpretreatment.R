@@ -65,10 +65,7 @@ test_that("filter_date_mode", {
 
 
 test_that("fPCpretreatment", {
-  path2laz <- system.file(
-    "extdata", "M30_FontBlanche.laz",
-    package = "lidarforfuel"
-  )
+  path2laz <- small_laz_file()
   # LMA value selected = 120.6 that is the LMA for Pinus halepensis, the
   # dominant species of the plot
   expect_warning(
@@ -101,3 +98,36 @@ test_that("lasrenumber", {
   expect_all_true(las2$ReturnNumber == las1$ReturnNumber)
 })
 
+
+test_that("get_traj", {
+  path2laz <- small_laz_file()
+  las <- path2laz |> lidR::readLAS()
+  traj <- get_traj(las)
+  expect_true(nrow(traj) > 0)
+
+  # get default trajectory
+  las1 <- lidR::LAS(las)
+  las1@data <- las1@data[1:50, ]
+  expect_warning({
+    traj <- get_traj(las1)
+  })
+  expect_true(nrow(traj) > 0)
+  # TODO: test multi_pulse
+
+})
+
+# test_that("fPCpretreatment-full-tile", {
+#   path2laz <- "/media/DATA/boissieu/git/LidarForFuel/draft/data/lidarhd.old/LHD_FXX_0904_6339_PTS_LAMB93_IGN69.copc.laz"
+#   # LMA value selected = 120.6 that is the LMA for Pinus halepensis, the
+#   # dominant species of the plot
+#   tic("Total time")
+#   expect_warning(
+#     m30_font_blanche_pretreated <- fPCpretreatment(path2laz, LMA = 120.6)
+#   )
+#   toc()
+#   # displaying the new attributes in the las
+#   expected_names <- c(
+#     "Easting", "Northing", "Elevation", "Time", "LMA", "WD", "Zref"
+#   )
+#   expect_contains(names(m30_font_blanche_pretreated), expected_names)
+# })

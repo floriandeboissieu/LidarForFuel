@@ -76,23 +76,51 @@ filter_date_mode <- function(las, deviation_days = Inf, gpstime_ref = "2011-09-1
 }
 
 
-lasrenumber <- function(las) {
+lasrenumber <- function(las, multi_pulse = FALSE) {
   .N <- Z <- gpstime <- ReturnNumber <- NULL
+  by <- "gpstime"
+  if (multi_pulse) {
+    by <- c("gpstime", "UserData")
+  }
   data.table::setorder(las@data, gpstime, ReturnNumber, -Z)
-  new_num <- las@data[, .(ReturnNumber = seq_len(.N), NumberOfReturns = .N), by = "gpstime"]
+  new_num <- las@data[, .(ReturnNumber = seq_len(.N), NumberOfReturns = .N), by = by]
   las@data[, names(new_num)] <- new_num
   las
 }
 
-lasrmdup <- function(las) {
+lasrmdup <- function(las, multi_pulse = FALSE) {
+  by <- "gpstime"
+  if (multi_pulse) {
+    by <- c("gpstime", "UserData")
+  }
   ReturnNumber <- dup <- NULL
-  dup <- las@data[, .(any(duplicated(ReturnNumber))), by = "gpstime"]
+  dup <- las@data[, .(any(duplicated(ReturnNumber))), by = by]
   dup <- dup[dup$V1 == FALSE, ]
-  las@data <- las@data[dup, on = "gpstime"]
+  las@data <- las@data[dup, on = by]
   las
 }
 
-get_traj <- function(las, thin = 0.0001, interval = .2, rmdup = TRUE, renum = TRUE) {
+#' Get trajectory from lidar data
+#'
+#' @param las LAS object
+#' @param thin LAS data thinning in seconds, see lidR::track_sensor
+#' @param interval LAS data thinning in seconds, see lidR::track_sensor
+#' @param rmdup remove duplicated points in ReturnNumber
+#' @param renum renumber points in ReturnNumber
+#' @param multi_pulse If TRUE the pulse index is defined by (gpstime, UserData).
+#' If FALSE the pulse index is defined by gpstime.
+#'
+#' @return sf object with gpstime, PointSourceID, SCORE and Point Z geometry
+#'
+#' @export
+get_traj <- function(
+  las,
+  thin = 0.0001,
+  interval = .2,
+  rmdup = TRUE,
+  renum = TRUE,
+  multi_pulse = FALSE
+) {
   .N <- X <- Y <- Z <- gpstime <- ReturnNumber <- NULL
 
   if (thin > 0) {
@@ -108,11 +136,11 @@ get_traj <- function(las, thin = 0.0001, interval = .2, rmdup = TRUE, renum = TR
   if (rmdup) {
     # remove points with duplicated ReturnNumber
     # warning: can be very long for big las
-    las <- lasrmdup(las)
+    las <- lasrmdup(las, multi_pulse = multi_pulse)
   }
 
   if (renum) {
-    las <- lasrenumber(las)
+    las <- lasrenumber(las, multi_pulse = multi_pulse)
   }
 
   traj <- try(
@@ -120,10 +148,9 @@ get_traj <- function(las, thin = 0.0001, interval = .2, rmdup = TRUE, renum = TR
       traj <- lidR::track_sensor(
         las,
         algorithm = lidR::Roussel2020(interval = interval),
-        thin_pulse_with_time = 0
+        thin_pulse_with_time = 0,
+        multi_pulse = multi_pulse
       )
-      traj <- cbind(sf::st_coordinates(traj), Time = traj$gpstime) |> data.table::as.data.table()
-      traj <- traj[, .(Easting = X, Northing = Y, Elevation = Z, Time), ]
     },
     silent = TRUE
   )
@@ -140,19 +167,27 @@ get_traj <- function(las, thin = 0.0001, interval = .2, rmdup = TRUE, renum = TR
 
   if (try_default_traj) {
     warning("Setting default trajectory to 1400m above of the ground points.")
-    traj <- lidR::filter_ground(las)@data[, .(gpstime, X, Y, Z)]
+    traj <- lidR::filter_ground(las)@data[, .(gpstime, X, Y, Z, PointSourceID)]
     if (nrow(traj) == 0) {
       warning("No ground point found, cannot set default trajectory.")
       return(NULL)
     }
-    traj <- traj[, .(Easting = mean(X), Northing = mean(Y), Elevation = mean(Z) + 1400), by = "gpstime"]
-    traj <- traj[, .(Easting, Northing, Elevation, Time = gpstime)]
+    traj <- traj[, .(
+      X = mean(X), Y = mean(Y), Z = mean(Z) + 1400,
+      PointSourceID = PointSourceID[1],
+      SCORE = 0
+    ), by = "gpstime"]
+    traj <- traj |> sf::st_as_sf(coords = c("X", "Y", "Z"), crs = sf::st_crs(las))
   }
 
   return(traj)
 }
 
 add_traj_to_las <- function(las, traj) {
+  if (inherits(traj, "sf")) {
+    traj <- cbind(traj[, "gpstime"], sf::st_coordinates(traj)) |>
+      dplyr::mutate(Easting = X, Northing = Y, Elevation = Z, Time = gpstime)
+  }
   # Find closest gpstime between traj and las
   nn2_gpstimes <- RANN::nn2(traj$Time, las$gpstime, k = 1)
   las@data <- cbind(las@data, traj[nn2_gpstimes$nn.idx, ])
