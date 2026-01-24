@@ -3,4 +3,5 @@
 export(fCBDprofile_fuelmetrics)
 export(fPCpretreatment)
 export(ffuelmetrics)
+export(get_traj)
 import(data.table)

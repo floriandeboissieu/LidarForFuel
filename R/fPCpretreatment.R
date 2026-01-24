@@ -186,7 +186,9 @@ get_traj <- function(
 add_traj_to_las <- function(las, traj) {
   if (inherits(traj, "sf")) {
     traj <- cbind(traj[, "gpstime"], sf::st_coordinates(traj)) |>
-      dplyr::mutate(Easting = X, Northing = Y, Elevation = Z, Time = gpstime)
+      sf::st_drop_geometry() |>
+      dplyr::mutate(Easting = X, Northing = Y, Elevation = Z, Time = gpstime) |>
+      as.data.table()
   }
   # Find closest gpstime between traj and las
   nn2_gpstimes <- RANN::nn2(traj$Time, las$gpstime, k = 1)
