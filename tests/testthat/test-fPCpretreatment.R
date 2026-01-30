@@ -104,6 +104,7 @@ test_that("get_traj", {
   las <- path2laz |> lidR::readLAS()
   traj <- get_traj(las)
   expect_true(nrow(traj) > 0)
+  expect_contains(names(traj), c("gpstime", "PointSourceID", "SCORE", "geometry"))
 
   # get default trajectory
   las1 <- lidR::LAS(las)
