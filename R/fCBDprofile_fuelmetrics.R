@@ -9,14 +9,14 @@
 #' @param WD numeric. wood density associated to each point or a generic value
 #' @param threshold numeric or character. Default = 0.02. Bulk density critical threshold  used to discriminate the different strata limits, midstrorey height, canopy base, canopy top etc. Either numeric : a bulk density value (in kg/m3) or character: a percentage of maximum CBD value.
 #' @param limit_N_points numeric. Default = 400. minimum number of point in the pixel/plot for computing profiles & metrics.
-#' @param limit_flightheight numeric. Default = 800. flight height above canopy in m. If the flight height is lower than limit_flyheight bulk density profile is not computed.  This limit serves as a safeguard to eliminate cases where the trajectory reconstruction would be outlier.
+#' @param limit_flight_height numeric. Default = 800. flight height above canopy in m. If the flight height is lower than limit_flyheight bulk density profile is not computed.  This limit serves as a safeguard to eliminate cases where the trajectory reconstruction would be outlier.
 #' @param scanning_angle logical. Default = TRUE. Use the scanning angle computed from the trajectories to estimate cos(theta). If false: cos(theta) = 1
-#' @param limit_vegetationheight. numeric. Default = 0.1. Vegetation height below which bulkdensity profile should not be computed. NULL -> -1 is returned.
+#' @param limit_vegetation_height numeric. Default = 0.1. Vegetation height below which bulkdensity profile should not be computed. NULL -> -1 is returned.
 #' @param omega numeric. clumping factor. Default is 1. One means "no clumping" and therefore assumes a homogeneous distribution of vegetation element in the strata.
 #' @param d numeric. Default = 1. depth of the strata in meter to compute the profile
 #' @param G numeric. Default = 0.5. Leaf projection ratio.
 #' @param gpstime gpstime of the point cloud. Only used to retrieve date of scanning
-#' @param Height_cover numeric, Default = 2. The height from which the canopy cover should be estimated.
+#' @param height_cover numeric. Default = 2. The height from which the canopy cover should be estimated.
 #' @param use_cover logical. Default = FALSE. Use cover for PAD estimates
 #' @param H_PAI Numeric. Height from which PAI, VCI and entropy is estimated. Default is 0 (means from the ground to the top).
 #' @return If datatype = "Pixel" raster is returned with 173 Bands corresponding to metrics and bulk density profile value per strata of depth d. If datatype is a las a list of two elements: 1) a vector with all fuel metrics 2) a data.table with the PAD and CBD profile value (three columns: H, PAD and CBD),
@@ -46,10 +46,10 @@ fCBDprofile_fuelmetrics <- function(
   datatype = "Pixel",
   X, Y, Z, Zref, ReturnNumber,
   Easting, Northing, Elevation, LMA, gpstime,
-  Height_Cover = 2, threshold = 0.02,
+  height_cover = 2, threshold = 0.02,
   scanning_angle = TRUE, use_cover = FALSE,
-  WD, limit_N_points = 400, limit_flightheight = 800,
-  limit_vegetationheight = 0.1,
+  WD, limit_N_points = 400, limit_flight_height = 800,
+  limit_vegetation_height = 0.1,
   H_PAI = 0, omega = 0.77, d = 1, G = 0.5
 ) {
   if (inherits(datatype, "LAS")) {
@@ -117,7 +117,7 @@ fCBDprofile_fuelmetrics <- function(
   }
   # get cover
 
-  Cover <- length(which(ReturnNumber[which(Z > Height_Cover)] == 1)) / length(which(ReturnNumber == 1))
+  Cover <- length(which(ReturnNumber[which(Z > height_cover)] == 1)) / length(which(ReturnNumber == 1))
   Cover_4 <- length(which(ReturnNumber[which(Z > 4)] == 1)) / length(which(ReturnNumber == 1))
   Cover_6 <- length(which(ReturnNumber[which(Z > 6)] == 1)) / length(which(ReturnNumber == 1))
 
@@ -149,9 +149,9 @@ fCBDprofile_fuelmetrics <- function(
     Nz_U <- 1
     norm_U <- 999999
   }
-  ### Exception if the mean of norm_U < limit_flightheight For LiDAr HD 1000m mean that plane flew lower than 1000m over the plot => unlikely for LiDAR HD => probably error in trajectory reconstruction
-  if (mean(norm_U, na.rm = TRUE) < limit_flightheight) {
-    warning("NULL return: limit_flightheight below the threshold. Check your trajectory and avoid using scanning_angle mode if the trajectory is uncertain")
+  ### Exception if the mean of norm_U < limit_flight_height For LiDAr HD 1000m mean that plane flew lower than 1000m over the plot => unlikely for LiDAR HD => probably error in trajectory reconstruction
+  if (mean(norm_U, na.rm = TRUE) < limit_flight_height) {
+    warning("NULL return: limit_flight_height below the threshold. Check your trajectory and avoid using scanning_angle mode if the trajectory is uncertain")
 
     VVP_metrics <- c(null_VVP_metrics, null_VVP_metrics_CBD)
     PAD_CBD_Profile <- NULL
@@ -176,9 +176,9 @@ fCBDprofile_fuelmetrics <- function(
   PAD <- -(log(Gf) * cos_theta / (G * omega) / d)
   if (use_cover == T) {
     PAD <- (-log(1 - Ni / (N * Cover)) / (G * omega * (d / cos_theta))) * Cover
-    if (Height_Cover >= max(seq_layer)) {
+    if (height_cover >= max(seq_layer)) {
       PAD <- -(log(Gf) * cos_theta / (G * omega) / d)
-      warning(paste0("Cover method was not use as Height_Cover > Vegetation Height"))
+      warning(paste0("Cover method was not use as height_cover > Vegetation Height"))
     }
     if (Cover == 0) {
       PAD <- -(log(Gf) * cos_theta / (G * omega) / d)
@@ -227,8 +227,8 @@ fCBDprofile_fuelmetrics <- function(
   }
 
   ### no data above 0.5m
-  if (max(PAD_CBD_Profile$H) < limit_vegetationheight) {
-    warning(paste0("NULL (-1) return: no data above", limit_vegetationheight, "m height"))
+  if (max(PAD_CBD_Profile$H) < limit_vegetation_height) {
+    warning(paste0("NULL (-1) return: no data above", limit_vegetation_height, "m height"))
     VVP_metrics <- c(null_VVP_metrics, null_VVP_metrics_CBD)
     if (inherits(datatype, "LAS")) {
       return(list(VVP_metrics, PAD_CBD_Profile))
