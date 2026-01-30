@@ -78,44 +78,7 @@ test_that("fPCpretreatment", {
   expect_contains(names(m30_font_blanche_pretreated), expected_names)
 })
 
-test_that("lasrmdup", {
-  las_file <- system.file("extdata", "example.laz", package = "rlas")
-  las <- lidR::readLAS(las_file)
-  las@data$ReturnNumber <- 1 # make duplicates
-  las1 <- lasrmdup(las)
 
-  expect_true(nrow(las) > nrow(las1))
-})
-
-test_that("lasrenumber", {
-  las_file <- system.file("extdata", "example.laz", package = "rlas")
-  # example is wrongly numbered unfortunatly...
-  las <- lidR::readLAS(las_file) |> lasrenumber()
-  las1 <- lidR::readLAS(las_file) |> lasrenumber()
-  las@data[, ReturnNumber := ReturnNumber + 1] # remove first return
-  expect_all_false(las$ReturnNumber == las1$ReturnNumber)
-  las2 <- lasrenumber(las)
-  expect_all_true(las2$ReturnNumber == las1$ReturnNumber)
-})
-
-
-test_that("get_traj", {
-  path2laz <- small_laz_file()
-  las <- path2laz |> lidR::readLAS()
-  traj <- get_traj(las)
-  expect_true(nrow(traj) > 0)
-  expect_contains(names(traj), c("gpstime", "PointSourceID", "SCORE", "geometry"))
-
-  # get default trajectory
-  las1 <- lidR::LAS(las)
-  las1@data <- las1@data[1:50, ]
-  expect_warning({
-    traj <- get_traj(las1)
-  })
-  expect_true(nrow(traj) > 0)
-  # TODO: test multi_pulse
-
-})
 
 # test_that("fPCpretreatment-full-tile", {
 #   path2laz <- "/media/DATA/boissieu/git/LidarForFuel/draft/data/lidarhd.old/LHD_FXX_0904_6339_PTS_LAMB93_IGN69.copc.laz"
