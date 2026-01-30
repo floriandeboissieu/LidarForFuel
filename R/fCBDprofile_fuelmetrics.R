@@ -137,7 +137,7 @@ fCBDprofile_fuelmetrics <- function(
   ## Create a sequence to make strata  ----
   seq_layer <- c(min(Z), seq(0, max(Z), d), max(Z))
   ## hist to get number of return in strata  ----
-  Ni <- graphics::hist(Z, breaks = seq_layer, plot = FALSE)$count
+  Ni <- graphics::hist(Z, breaks = seq_layer, plot = FALSE)$counts
   N <- cumsum(Ni)
   NRD <- Ni / N
   NRD[is.nan(NRD)] <- 0
