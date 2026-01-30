@@ -12,7 +12,7 @@ add_traj_to_las(las, traj)
 \item{traj}{sf object with column gpstime and Point Z geometries}
 }
 \value{
-LAS object with additional attributes Xtraj, Ytraj, Ztraj, Ttraj
+LAS object with additional attributes Easting, Northing, Elevation, Time
 }
 \description{
 Interpolate trajectory to las points and add coordinates as extrabytes
