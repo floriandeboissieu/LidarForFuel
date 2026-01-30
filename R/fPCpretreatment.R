@@ -80,7 +80,8 @@ filter_date_mode <- function(las, deviation_days = Inf, gpstime_ref = "2011-09-1
 #' Point cloud pre-treatment for using fCBDprofile_fuelmetrics in pixels
 #'
 #' @description Function for preprocessing las (laz) files for use in fCBDprofile_fuelmetrics. This can be used in the catalog_apply lidR function. The pretreatment consists of normalizing the point cloud and adding various attributes: Plane position for each point (easting, northing, elevation), LMA (leaf mass area) and wood density (WD) by intersecting the point cloud with an LMA and WD map or by providing LMA and WD values.
-#' @param chunk character. path to a las (laz) file. Can be apply to a catalog see lidr catalog apply) # nolint: line_length_linter.
+#' @param chunk LAS object, LAScluster chunk or character. If character, the path to a las (laz) file is expected.
+#' Can be apply to a catalog see lidR::catalog_apply # nolint: line_length_linter.
 #' @param classify logical (default is FALSE). Make a ground classification. Only if the original point cloud is not classified
 #' @param LMA character or numeric. Default = 140. If available path to a LMA map (.tif) of the area if available or a single LMA value in g.m² (e.g 140. cf: Martin-Ducup et al. 2024)
 #' @param WD character or numeric. Default = 591. If available, path to a WD map (.tif) of the area if available or a single WD value in kg.m3 (e.g 591 cf: Martin-Ducup et al. 2024).
@@ -94,10 +95,15 @@ filter_date_mode <- function(las, deviation_days = Inf, gpstime_ref = "2011-09-1
 #' It is expected to be in timezone UTC. Default is "2011-09-14 01:46:40" which is the standard GPS Time (1980-01-06 00:00:00)
 #' plus 1e9 seconds, as defined in LAS 1.4 specifications.
 #' @param season_filter numeric. A vector of integer for months to keep (e.g: 5:10 keep retunrs between may and october)
-#' @param traj data.frame with columns Easting, Northing, Elevation, Time. Trajectory covering the LAS chunk. If NULL, the function will try to compute it.
-#' @return a Normalized point cloud (.laz) with several new attributes need to run fCBDprofile_fuelmetrics
+#' @param traj sf object. Trajectory covering the LAS chunk. The sf object is expected to have a column gpstime and Point Z geometries.
+#' If NULL, the function will try to compute it.
+#' @return LAS object. A normalized point cloud (.laz) with several new attributes needed to run fCBDprofile_fuelmetrics, see details.
 #' @details
-#' The attributes added to the laz are LMA : LMA value of each point. Zref :original Z; Easting, Northing, Elevation, Time that are the X,Y,Z position of the plane and the its GPStime for each point (obtained from lidR::track_sensor()). In a following version it will be possible to directly load a trajectory file if available.
+#' The attributes added to the laz are:
+#' - LMA : LMA value of each point
+#' - Zref :original Z
+#' - Easting, Northing, Elevation, Time that are the X,Y,Z coordinates of the sensor
+#'   and the its GPStime for each point (obtained from lidR::track_sensor()).
 #' @examples
 #' \donttest{
 #' path2laz <- system.file("extdata", "M30_FontBlanche.laz", package = "lidarforfuel")
