@@ -19,7 +19,7 @@ test_that("lasrenumber", {
 })
 
 
-test_that("get_traj", {
+test_that("get and add traj", {
   path2laz <- small_laz_file()
   las <- path2laz |> lidR::readLAS()
   traj <- get_traj(las)
@@ -31,9 +31,13 @@ test_that("get_traj", {
   las1 <- lidR::LAS(las)
   las1@data <- las1@data[1:50, ]
   expect_warning({
-    traj <- get_traj(las1)
+    traj1 <- get_traj(las1)
   })
-  expect_true(nrow(traj) > 0)
+  expect_true(nrow(traj1) > 0)
   # TODO: test multi_pulse
 
+  # add trajectory
+  las2 <- add_traj_to_las(las, traj)
+  expect_contains(names(las2@data), c("Easting", "Northing", "Elevation", "Time"))
 })
+
