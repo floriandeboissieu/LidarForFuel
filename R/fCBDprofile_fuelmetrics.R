@@ -33,7 +33,17 @@
 #' Fuel_metrics <- fCBDprofile_fuelmetrics(datatype = M30_FontBlanche_pretreated, WD = 500)
 #'
 #' # Run with pixel_metrics and get a raster
-#' M30_FontBlanche_Raster <- lidR::pixel_metrics(M30_FontBlanche_pretreated, ~ fCBDprofile_fuelmetrics(X = X, Y = Y, Z = Z, Zref = Zref, gpstime = gpstime, ReturnNumber = ReturnNumber, Easting = Easting, Northing = Northing, Elevation = Elevation, LMA = LMA, threshold = 0.016, WD = 500, limit_N_points = 400, datatype = "Pixel", omega = 0.77, d = 0.5, G = 0.5), res = 10)
+#' M30_FontBlanche_Raster <- lidR::pixel_metrics(
+#'   M30_FontBlanche_pretreated,
+#'   ~ fCBDprofile_fuelmetrics(
+#'     X = X, Y = Y, Z = Z, Zref = Zref,
+#'     gpstime = gpstime, ReturnNumber = ReturnNumber,
+#'     Easting = Easting, Northing = Northing, Elevation = Elevation,
+#'     LMA = LMA, threshold = 0.016, WD = 500, limit_N_points = 400,
+#'     datatype = "Pixel", omega = 0.77, d = 0.5, G = 0.5
+#'   ),
+#'   res = 10
+#' )
 #'
 #' # Replace -1 in cells not computed  by NA
 #' M30_FontBlanche_Raster <- terra::subst(M30_FontBlanche_Raster, -1, NA)
@@ -65,6 +75,8 @@ fCBDprofile_fuelmetrics <- function(
     WD <- datatype$WD
     gpstime <- datatype$gpstime
   }
+  CBD_rollM <- H <- NULL
+
   date <- mean(gpstime)
   # library(data.table)
 
@@ -101,7 +113,6 @@ fCBDprofile_fuelmetrics <- function(
     Cover_6 = -1
   )
 
-
   if (length(Z) < limit_N_points) {
     warning("NULL return: The number of point < limit_N_points: check your tile or you pointcloud")
 
@@ -126,7 +137,7 @@ fCBDprofile_fuelmetrics <- function(
   ## Create a sequence to make strata  ----
   seq_layer <- c(min(Z), seq(0, max(Z), d), max(Z))
   ## hist to get number of return in strata  ----
-  Ni <- hist(Z, breaks = seq_layer, plot = FALSE)$count
+  Ni <- graphics::hist(Z, breaks = seq_layer, plot = FALSE)$count
   N <- cumsum(Ni)
   NRD <- Ni / N
   NRD[is.nan(NRD)] <- 0
@@ -195,7 +206,7 @@ fCBDprofile_fuelmetrics <- function(
 
   ## Partition of fuel surface (fine branch vs leaves) ----
   ### Wood density (kg/m3)
-  WD <- mean(WD, na.rm = T)
+  WD <- mean(WD, na.rm = TRUE)
   ### Surface volume ratio (SVR: m²/m3) for 4mm diameter twigs (=> wood fuel) = 2.pi.r.l*(1/2)/pi.r².l = 1/r
   SVR <- 1 / 0.002
   ### Wood mass area (WMA)

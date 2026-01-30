@@ -5,7 +5,7 @@ lasrenumber <- function(las, multi_pulse = FALSE) {
     by <- c("gpstime", "UserData")
   }
   data.table::setorder(las@data, gpstime, ReturnNumber, -Z)
-  new_num <- las@data[, .(ReturnNumber = seq_len(.N), NumberOfReturns = .N), by = by]
+  new_num <- las@data[, list(ReturnNumber = seq_len(.N), NumberOfReturns = .N), by = by]
   las@data[, names(new_num)] <- new_num
   las
 }
@@ -16,7 +16,7 @@ lasrmdup <- function(las, multi_pulse = FALSE) {
     by <- c("gpstime", "UserData")
   }
   ReturnNumber <- dup <- NULL
-  dup <- las@data[, .(any(duplicated(ReturnNumber))), by = by]
+  dup <- las@data[, list(any(duplicated(ReturnNumber))), by = by]
   dup <- dup[dup$V1 == FALSE, ]
   las@data <- las@data[dup, on = by]
   las
@@ -43,7 +43,7 @@ get_traj <- function(
   renum = TRUE,
   multi_pulse = FALSE
 ) {
-  .N <- X <- Y <- Z <- gpstime <- ReturnNumber <- NULL
+  .N <- X <- Y <- Z <- gpstime <- ReturnNumber <- PointSourceID <- NULL
 
   if (thin > 0) {
     # thinning pulses before rmdup
@@ -89,12 +89,12 @@ get_traj <- function(
 
   if (try_default_traj) {
     warning("Setting default trajectory to 1400m above of the ground points.")
-    traj <- lidR::filter_ground(las)@data[, .(gpstime, X, Y, Z, PointSourceID)]
+    traj <- lidR::filter_ground(las)@data[, list(gpstime, X, Y, Z, PointSourceID)]
     if (nrow(traj) == 0) {
       warning("No ground point found, cannot set default trajectory.")
       return(NULL)
     }
-    traj <- traj[, .(
+    traj <- traj[, list(
       X = mean(X), Y = mean(Y), Z = mean(Z) + 1400,
       PointSourceID = PointSourceID[1],
       SCORE = 0
@@ -114,12 +114,23 @@ get_traj <- function(
 #' @return LAS object with additional attributes Easting, Northing, Elevation, Time
 #' @export
 add_traj_to_las <- function(las, traj) {
+  X <- Y <- Z <- gpstime <- NULL
+
   if (inherits(traj, "sf")) {
     traj <- cbind(traj[, "gpstime"], sf::st_coordinates(traj)) |>
-      sf::st_drop_geometry() |>
-      dplyr::mutate(Easting = X, Northing = Y, Elevation = Z, Time = gpstime) |>
-      as.data.table()
+      sf::st_drop_geometry()
   }
+
+  traj <- dplyr::rename(
+    traj,
+    Easting = X,
+    Northing = Y,
+    Elevation = Z,
+    Time = gpstime
+  )
+
+  traj <- data.table::as.data.table(traj)
+
   # Find closest gpstime between traj and las
   nn2_gpstimes <- RANN::nn2(traj$Time, las$gpstime, k = 1)
   las@data <- cbind(las@data, traj[nn2_gpstimes$nn.idx, ])

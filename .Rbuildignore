@@ -1,8 +1,9 @@
 ^.*\.Rproj$
 ^\.Rproj\.user$
-^Code_examples$
 ^\.lintr$
 ^\.vscode$
 ^\.git$
+^Code_examples$
+^img$
 ^tests$
-^draft$
+^environment.yml$

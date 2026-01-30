@@ -13,7 +13,7 @@ filter_seasons <- function(las, months = 1:12, gpstime_ref = "2011-09-14 01:46:4
   proportions_of_winter_pont <- (1 - nrow(las@data) / length(months_acquisition)) * 100
   if (proportions_of_winter_pont > 0) {
     if (plot_hist_days) {
-      hist(
+      graphics::hist(
         datetime,
         breaks = "day",
         main = "Histogram of acquisition date", xlab = "Date of acquisition"
@@ -39,7 +39,7 @@ filter_date_mode <- function(las, deviation_days = Inf, gpstime_ref = "2011-09-1
     return(las)
   }
 
-  hist_test <- hist(
+  hist_test <- graphics::hist(
     datetime,
     breaks = "day",
     plot = plot_hist_days,
@@ -112,8 +112,8 @@ filter_date_mode <- function(las, deviation_days = Inf, gpstime_ref = "2011-09-1
 #' # displaying the new attributes in the las
 #' names(M30_FontBlanche_pretreated)
 #' }
-#' @export
 #' @import data.table
+#' @export
 fPCpretreatment <- function(
   chunk,
   classify = FALSE,
