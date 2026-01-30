@@ -40,4 +40,3 @@ test_that("get and add traj", {
   las2 <- add_traj_to_las(las, traj)
   expect_contains(names(las2@data), c("Easting", "Northing", "Elevation", "Time"))
 })
-
