@@ -111,23 +111,23 @@ get_traj <- function(
 #' @param las LAS object
 #' @param traj sf object with column gpstime and Point Z geometries
 #'
-#' @return LAS object with additional attributes Xtraj, Ytraj, Ztraj, Ttraj
+#' @return LAS object with additional attributes Easting, Northing, Elevation, Time
 #' @export
 add_traj_to_las <- function(las, traj) {
   if (inherits(traj, "sf")) {
     traj <- cbind(traj[, "gpstime"], sf::st_coordinates(traj)) |>
       sf::st_drop_geometry() |>
-      dplyr::mutate(Xtraj = X, Ytraj = Y, Ztraj = Z, Ttraj = gpstime) |>
+      dplyr::mutate(Easting = X, Northing = Y, Elevation = Z, Time = gpstime) |>
       as.data.table()
   }
   # Find closest gpstime between traj and las
-  nn2_gpstimes <- RANN::nn2(traj$Ttraj, las$gpstime, k = 1)
+  nn2_gpstimes <- RANN::nn2(traj$Time, las$gpstime, k = 1)
   las@data <- cbind(las@data, traj[nn2_gpstimes$nn.idx, ])
 
-  las <- lidR::add_lasattribute(las, name = "Xtraj", desc = "trajectory coordinate")
-  las <- lidR::add_lasattribute(las, name = "Ytraj", desc = "trajectory coordinate")
-  las <- lidR::add_lasattribute(las, name = "Ztraj", desc = "trajectory coordinate")
-  las <- lidR::add_lasattribute(las, name = "Ttraj", desc = "trajectory timestamp")
+  las <- lidR::add_lasattribute(las, name = "Easting", desc = "trajectory coordinate")
+  las <- lidR::add_lasattribute(las, name = "Northing", desc = "trajectory coordinate")
+  las <- lidR::add_lasattribute(las, name = "Elevation", desc = "trajectory coordinate")
+  las <- lidR::add_lasattribute(las, name = "Time", desc = "trajectory timestamp")
 
   las
 }
