@@ -232,7 +232,7 @@ fCBDprofile_fuelmetrics <- function(
 
   ##  Define threshold when threshold is a proportion of CBD max----
   if (stringr::str_detect(threshold, "%")) {
-    threshold_prop <- as.numeric(stringr::str_split(threshold, "%", simplify = T)[, 1]) / 100
+    threshold_prop <- as.numeric(stringr::str_split(threshold, "%", simplify = TRUE)[, 1]) / 100
     Height_CBD <- ifelse((max(PAD_CBD_Profile$H) / 3) > 2, max(PAD_CBD_Profile$H) / 3, 2)
     threshold <- max(PAD_CBD_Profile[H > Height_CBD]$CBD) * threshold_prop
   }

@@ -43,7 +43,7 @@ get_traj <- function(
   renum = TRUE,
   multi_pulse = FALSE
 ) {
-  .N <- X <- Y <- Z <- gpstime <- ReturnNumber <- PointSourceID <- NULL
+  X <- Y <- Z <- gpstime <- PointSourceID <- NULL
 
   if (thin > 0) {
     # thinning pulses before rmdup
