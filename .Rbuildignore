@@ -1,3 +1,10 @@
 ^.*\.Rproj$
 ^\.Rproj\.user$
+^\.lintr$
+^\.vscode$
+^\.git$
 ^Code_examples$
+^img$
+^tests$
+^WIP$
+^environment.yml$

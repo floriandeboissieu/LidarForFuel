@@ -16,14 +16,14 @@ fCBDprofile_fuelmetrics(
   Elevation,
   LMA,
   gpstime,
-  Height_Cover = 2,
+  height_cover = 2,
   threshold = 0.02,
   scanning_angle = TRUE,
   use_cover = FALSE,
   WD,
   limit_N_points = 400,
-  limit_flightheight = 800,
-  limit_vegetationheight = 0.1,
+  limit_flight_height = 800,
+  limit_vegetation_height = 0.1,
   H_PAI = 0,
   omega = 0.77,
   d = 1,
@@ -43,6 +43,8 @@ fCBDprofile_fuelmetrics(
 
 \item{gpstime}{gpstime of the point cloud. Only used to retrieve date of scanning}
 
+\item{height_cover}{numeric. Default = 2. The height from which the canopy cover should be estimated.}
+
 \item{threshold}{numeric or character. Default = 0.02. Bulk density critical threshold  used to discriminate the different strata limits, midstrorey height, canopy base, canopy top etc. Either numeric : a bulk density value (in kg/m3) or character: a percentage of maximum CBD value.}
 
 \item{scanning_angle}{logical. Default = TRUE. Use the scanning angle computed from the trajectories to estimate cos(theta). If false: cos(theta) = 1}
@@ -53,7 +55,9 @@ fCBDprofile_fuelmetrics(
 
 \item{limit_N_points}{numeric. Default = 400. minimum number of point in the pixel/plot for computing profiles & metrics.}
 
-\item{limit_flightheight}{numeric. Default = 800. flight height above canopy in m. If the flight height is lower than limit_flyheight bulk density profile is not computed.  This limit serves as a safeguard to eliminate cases where the trajectory reconstruction would be outlier.}
+\item{limit_flight_height}{numeric. Default = 800. flight height above canopy in m. If the flight height is lower than limit_flyheight bulk density profile is not computed.  This limit serves as a safeguard to eliminate cases where the trajectory reconstruction would be outlier.}
+
+\item{limit_vegetation_height}{numeric. Default = 0.1. Vegetation height below which bulkdensity profile should not be computed. NULL -> -1 is returned.}
 
 \item{H_PAI}{Numeric. Height from which PAI, VCI and entropy is estimated. Default is 0 (means from the ground to the top).}
 
@@ -62,10 +66,6 @@ fCBDprofile_fuelmetrics(
 \item{d}{numeric. Default = 1. depth of the strata in meter to compute the profile}
 
 \item{G}{numeric. Default = 0.5. Leaf projection ratio.}
-
-\item{limit_vegetationheight.}{numeric. Default = 0.1. Vegetation height below which bulkdensity profile should not be computed. NULL -> -1 is returned.}
-
-\item{Height_cover}{numeric, Default = 2. The height from which the canopy cover should be estimated.}
 }
 \value{
 If datatype = "Pixel" raster is returned with 173 Bands corresponding to metrics and bulk density profile value per strata of depth d. If datatype is a las a list of two elements: 1) a vector with all fuel metrics 2) a data.table with the PAD and CBD profile value (three columns: H, PAD and CBD),
@@ -78,22 +78,31 @@ This function can be used with pixel_metrics lidR function to generate maps (ras
 }
 \examples{
 \donttest{
-path2laz <- system.file("extdata","M30_FontBlanche_pretreated.laz", package="lidarforfuel")
+path2laz <- system.file("extdata", "M30_FontBlanche_pretreated.laz", package = "lidarforfuel")
 
 # read a pretreated las
 M30_FontBlanche_pretreated <- lidR::readLAS(path2laz)
 
 # Run the function on a las file and get a vector of the metrics and PAD and CDB profile
-Fuel_metrics <- fCBDprofile_fuelmetrics(datatype=M30_FontBlanche_pretreated,WD=500)
+Fuel_metrics <- fCBDprofile_fuelmetrics(datatype = M30_FontBlanche_pretreated, WD = 500)
 
 # Run with pixel_metrics and get a raster
-M30_FontBlanche_Raster <- lidR::pixel_metrics(M30_FontBlanche_pretreated,~fCBDprofile_fuelmetrics(X=X,Y=Y,Z=Z,Zref = Zref,gpstime =gpstime, ReturnNumber=ReturnNumber,Easting = Easting ,Northing = Northing,Elevation = Elevation ,LMA = LMA,threshold = 0.016,WD = 500 ,limit_N_points = 400,datatype = "Pixel",omega = 0.77,d=0.5,G = 0.5),res=10)
+M30_FontBlanche_Raster <- lidR::pixel_metrics(
+  M30_FontBlanche_pretreated,
+  ~ fCBDprofile_fuelmetrics(
+    X = X, Y = Y, Z = Z, Zref = Zref,
+    gpstime = gpstime, ReturnNumber = ReturnNumber,
+    Easting = Easting, Northing = Northing, Elevation = Elevation,
+    LMA = LMA, threshold = 0.016, WD = 500, limit_N_points = 400,
+    datatype = "Pixel", omega = 0.77, d = 0.5, G = 0.5
+  ),
+  res = 10
+)
 
 # Replace -1 in cells not computed  by NA
-M30_FontBlanche_Raster <- terra::subst(M30_FontBlanche_Raster,-1,NA)
+M30_FontBlanche_Raster <- terra::subst(M30_FontBlanche_Raster, -1, NA)
 
 # Plot a few metrics
 terra::plot(M30_FontBlanche_Raster[[8:23]])
-
 }
 }

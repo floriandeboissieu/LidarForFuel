@@ -24,15 +24,14 @@ In addition to fuel metrics, this function also estimates structural metrics suc
 }
 \examples{
 \donttest{
-path2profile <- system.file("extdata","BD_profile.txt", package="lidarforfuel")
+path2profile <- system.file("extdata", "BD_profile.txt", package = "lidarforfuel")
 
 # read a table
 Profile <- data.table::fread(path2profile)
 
 # Run the function with a relative threshold
-Fuel_metrics <- ffuelmetrics(profile_table=Profile,threshold="10\%")
+Fuel_metrics <- ffuelmetrics(profile_table = Profile, threshold = "10\%")
 # Run the function with an absolute threshold
-Fuel_metrics <- ffuelmetrics(profile_table=Profile,threshold=0.02)
-
+Fuel_metrics <- ffuelmetrics(profile_table = Profile, threshold = 0.02)
 }
 }

@@ -16,11 +16,13 @@ fPCpretreatment(
   start_date = "2011-09-14 01:46:40",
   season_filter = 1:12,
   deviation_days = Inf,
-  plot_hist_days = FALSE
+  plot_hist_days = FALSE,
+  traj = NULL
 )
 }
 \arguments{
-\item{chunk}{character. path to a las (laz) file. Can be apply to a catalog see lidr catalog apply) # nolint: line_length_linter.}
+\item{chunk}{LAS object, LAScluster chunk or character. If character, the path to a las (laz) file is expected.
+Can be apply to a catalog see lidR::catalog_apply # nolint: line_length_linter.}
 
 \item{classify}{logical (default is FALSE). Make a ground classification. Only if the original point cloud is not classified}
 
@@ -36,7 +38,7 @@ fPCpretreatment(
 
 \item{Height_filter}{numeric. Default = 80. Height limit to remove noise point}
 
-\item{start_date}{date. The reference datetime to retrieve datetime from relative gpstime of the laz. 
+\item{start_date}{date. The reference datetime to retrieve datetime from relative gpstime of the laz.
 It is expected to be in timezone UTC. Default is "2011-09-14 01:46:40" which is the standard GPS Time (1980-01-06 00:00:00)
 plus 1e9 seconds, as defined in LAS 1.4 specifications.}
 
@@ -45,15 +47,22 @@ plus 1e9 seconds, as defined in LAS 1.4 specifications.}
 \item{deviation_days}{numeric. Maximum number of days tolerated between the acquisition in a given point cloud (a tile or plot). Deactivated by default}
 
 \item{plot_hist_days}{logical. Should the histogram of dates of acquisition be displayed. Default =FALSE}
+
+\item{traj}{sf object. Trajectory covering the LAS chunk. The sf object is expected to have a column gpstime and Point Z geometries.
+If NULL, the function will try to compute it.}
 }
 \value{
-a Normalized point cloud (.laz) with several new attributes need to run fCBDprofile_fuelmetrics
+LAS object. A normalized point cloud (.laz) with several new attributes needed to run fCBDprofile_fuelmetrics, see details.
 }
 \description{
 Function for preprocessing las (laz) files for use in fCBDprofile_fuelmetrics. This can be used in the catalog_apply lidR function. The pretreatment consists of normalizing the point cloud and adding various attributes: Plane position for each point (easting, northing, elevation), LMA (leaf mass area) and wood density (WD) by intersecting the point cloud with an LMA and WD map or by providing LMA and WD values.
 }
 \details{
-The attributes added to the laz are LMA : LMA value of each point. Zref :original Z; Easting, Northing, Elevation, Time that are the X,Y,Z position of the plane and the its GPStime for each point (obtained from lidR::track_sensor()). In a following version it will be possible to directly load a trajectory file if available.
+The attributes added to the laz are:
+- LMA : LMA value of each point
+- Zref :original Z
+- Easting, Northing, Elevation, Time that are the X,Y,Z coordinates of the sensor
+  and the its GPStime for each point (obtained from lidR::track_sensor()).
 }
 \examples{
 \donttest{
