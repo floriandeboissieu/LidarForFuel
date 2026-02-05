@@ -10,7 +10,8 @@ pad_metrics <- function(
 
   ## Create a sequence to make strata  ----
   # TODO: check this --> no need of max(Z) here
-  # consider max_z as the max border of the column: do not create layer starting at max_z
+  # consider max_z as the max border of the profile:
+  # i.e. do not create a layer starting at max_z
   max_layer <- plyr::round_any(max_z - res_z, res_z, ceiling)
   seq_layer <- c(-Inf, seq(min_z, max_layer, res_z))
   ## hist to get number of return in strata  ----
