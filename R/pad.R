@@ -13,11 +13,15 @@
   # TODO: check this --> no need of max(Z) here
   # consider max_z as the max border of the profile:
   # i.e. do not create a layer starting at max_z
-  max_layer <- plyr::round_any(max_z - res_z, res_z, ceiling)
+  max_layer <- plyr::round_any(max_z, res_z, ceiling)
   seq_layer <- c(-Inf, seq(min_z, max_layer, res_z))
   ## hist to get number of return in strata  ----
   Ni <- graphics::hist(Z, breaks = seq_layer, plot = FALSE)$counts
   N <- cumsum(Ni)
+  # remove useless first layer
+  Ni <- Ni[-1]
+  N <- N[-1]
+
   NRD <- Ni / N
   NRD[is.nan(NRD)] <- 0
   ## NRD estimation  ----
@@ -46,8 +50,8 @@
     return(NULL)
   }
 
-  ### remove the bottom & value of the seq
-  seq_layer <- seq_layer[-1]
+  ### remove the bottom & top values of the seq
+  seq_layer <- seq_layer[-c(1, length(seq_layer))]
 
   ### cos theta take into account scanning angle
   cos_theta <- mean(abs(Nz_U))
@@ -81,12 +85,10 @@
   names(PAD) <- pad_names
   output <- as.list(PAD)
 
-  if (keep_N){
-    Ni <- Ni[-1]
+  if (keep_N) {
     ni_names <- paste("Ni_", (seq_layer + (res_z / 2)), "m", sep = "")
     names(Ni) <- ni_names
 
-    N <- N[-1]
     n_names <- paste("N_", (seq_layer + (res_z / 2)), "m", sep = "")
     names(N) <- n_names
 
