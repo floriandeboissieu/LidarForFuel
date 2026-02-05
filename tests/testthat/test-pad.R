@@ -15,4 +15,8 @@ test_that("pad", {
   pad_rast <- lidR::pixel_metrics(nlas, pad_metrics(), res = 10)
   expect_all_true(terra::res(pad_rast) == c(10, 10))
   expect_true(terra::nlyr(pad_rast) == 60)
+
+  # test with Ni
+  pad_rast <- lidR::pixel_metrics(nlas, pad_metrics(keep_Ni = TRUE), res = 10)
+  expect_true(terra::nlyr(pad_rast) == (60 * 3))
 })

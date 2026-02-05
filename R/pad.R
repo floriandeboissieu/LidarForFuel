@@ -4,7 +4,8 @@
   res_z = 1, min_z = 0, max_z = 60, height_cover = 2,
   G = 0.5, omega = 0.77,
   scanning_angle = TRUE, use_cover = FALSE,
-  limit_N_points = 400, limit_flight_height = 800
+  limit_N_points = 400, limit_flight_height = 800,
+  keep_N = FALSE
 ) {
   Cover <- length(which(ReturnNumber[which(Z > height_cover)] == 1)) / length(which(ReturnNumber == 1))
 
@@ -78,17 +79,29 @@
   # add d/2 to get the middle height of the strata for each stratum
   pad_names <- paste("PAD_", (seq_layer + (res_z / 2)), "m", sep = "")
   names(PAD) <- pad_names
-  # considered as pixel datatype
-  PAD <- as.list(PAD)
+  output <- as.list(PAD)
 
-  return(PAD)
+  if (keep_N){
+    Ni <- Ni[-1]
+    ni_names <- paste("Ni_", (seq_layer + (res_z / 2)), "m", sep = "")
+    names(Ni) <- ni_names
+
+    N <- N[-1]
+    n_names <- paste("N_", (seq_layer + (res_z / 2)), "m", sep = "")
+    names(N) <- n_names
+
+    output <- c(output, as.list(Ni))
+    output <- c(output, as.list(N))
+  }
+
+  return(output)
 }
 
 pad_metrics <- function(
   res_z = 1, min_z = 0, max_z = 60, height_cover = 2,
   G = 0.5, omega = 0.77,
   scanning_angle = TRUE, use_cover = FALSE,
-  limit_N_points = 400, limit_flight_height = 800
+  limit_N_points = 400, limit_flight_height = 800, keep_Ni = FALSE
 ) {
   fun <- substitute(
     ~ .pad_metrics(
@@ -97,12 +110,14 @@ pad_metrics <- function(
       res_z = res_z, min_z = min_z, max_z = max_z, height_cover = eval(height_cover),
       G = G, omega = omega,
       scanning_angle = scanning_angle, use_cover = use_cover,
-      limit_N_points = limit_N_points, limit_flight_height = limit_flight_height
+      limit_N_points = limit_N_points, limit_flight_height = limit_flight_height,
+      keep_N = keep_N
     ), list(
       res_z = res_z, min_z = min_z, max_z = max_z, height_cover = height_cover,
       G = G, omega = omega,
       scanning_angle = scanning_angle, use_cover = use_cover,
-      limit_N_points = limit_N_points, limit_flight_height = limit_flight_height
+      limit_N_points = limit_N_points, limit_flight_height = limit_flight_height,
+      keep_N = keep_N
     )
   ) |> as.formula()
 
