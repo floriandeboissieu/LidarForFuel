@@ -101,7 +101,7 @@ pad_metrics <- function(
   res_z = 1, min_z = 0, max_z = 60, height_cover = 2,
   G = 0.5, omega = 0.77,
   scanning_angle = TRUE, use_cover = FALSE,
-  limit_N_points = 400, limit_flight_height = 800, keep_Ni = FALSE
+  limit_N_points = 400, limit_flight_height = 800, keep_N = FALSE
 ) {
   fun <- substitute(
     ~ .pad_metrics(
