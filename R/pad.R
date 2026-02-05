@@ -1,4 +1,4 @@
-pad_metrics <- function(
+.pad_metrics <- function(
   gpstime, X, Y, Z, Zref, ReturnNumber,
   Easting, Northing, Elevation,
   res_z = 1, min_z = 0, max_z = 60, height_cover = 2,
@@ -84,14 +84,14 @@ pad_metrics <- function(
   return(PAD)
 }
 
-.pad_metrics <- function(
+pad_metrics <- function(
   res_z = 1, min_z = 0, max_z = 60, height_cover = 2,
   G = 0.5, omega = 0.77,
   scanning_angle = TRUE, use_cover = FALSE,
   limit_N_points = 400, limit_flight_height = 800
 ) {
   fun <- substitute(
-    ~ pad_metrics(
+    ~ .pad_metrics(
       gpstime, X, Y, Z, Zref, ReturnNumber,
       Easting, Northing, Elevation,
       res_z = res_z, min_z = min_z, max_z = max_z, height_cover = eval(height_cover),
