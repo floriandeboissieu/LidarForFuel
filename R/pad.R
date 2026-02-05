@@ -76,7 +76,7 @@
   PAD[seq_layer >= min_empty] <- 0
 
   # add d/2 to get the middle height of the strata for each stratum
-  pad_names <- paste((seq_layer + (res_z / 2)), "m", sep = "")
+  pad_names <- paste("PAD_", (seq_layer + (res_z / 2)), "m", sep = "")
   names(PAD) <- pad_names
   # considered as pixel datatype
   PAD <- as.list(PAD)

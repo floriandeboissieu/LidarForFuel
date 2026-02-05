@@ -7,9 +7,9 @@ test_that("pad", {
   # cloud metrics
   pad <- lidR::cloud_metrics(nlas, pad_metrics(res = .5, min_z = 0, max_z = 60)) |>
     unlist()
-  expect_true(pad["17.25m"] == 0)
+  expect_true(pad["PAD_17.25m"] == 0)
   expect_length(pad, 120)
-  expect_true(names(pad[length(pad)]) == "59.75m")
+  expect_true(names(pad[length(pad)]) == "PAD_59.75m")
 
   # pixel metrics
   pad_rast <- lidR::pixel_metrics(nlas, pad_metrics(), res = 10)
