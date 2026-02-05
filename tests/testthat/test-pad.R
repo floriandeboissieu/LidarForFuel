@@ -3,11 +3,16 @@ test_that("pad", {
   las <- path2laz |> lidR::readLAS()
   traj <- get_traj(las)
   nlas <- fPCpretreatment(las, traj = traj)
-  pad <- lidR::cloud_metrics(nlas, .pad_metrics(res = .5, min_z = 0, max_z = 60)) |> unlist()
+
+  # cloud metrics
+  pad <- lidR::cloud_metrics(nlas, pad_metrics(res = .5, min_z = 0, max_z = 60)) |>
+    unlist()
   expect_true(pad["17.25m"] == 0)
   expect_length(pad, 120)
   expect_true(names(pad[length(pad)]) == "59.75m")
-  pad_rast <- lidR::pixel_metrics(nlas, .pad_metrics(), res = 10)
-  expect_all_true(terra::res(pad_rast) == c(10,10))
+
+  # pixel metrics
+  pad_rast <- lidR::pixel_metrics(nlas, pad_metrics(), res = 10)
+  expect_all_true(terra::res(pad_rast) == c(10, 10))
   expect_true(terra::nlyr(pad_rast) == 60)
 })
