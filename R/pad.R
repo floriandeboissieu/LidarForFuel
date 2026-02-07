@@ -8,7 +8,7 @@
   keep_N = FALSE
 ) {
   if (length(Z) < limit_N_points) {
-    warning("NULL return: The number of point < limit_N_points: check the pointcloud")
+    warning("NULL return: the number of points < limit_N_points. Check the point cloud.")
     return(NULL)
   }
 
@@ -25,8 +25,7 @@
   }
 
   breaks <- c(-Inf, seq(z0, z_max_pad, dz))
-  ## hist to get number of return in strata  ----
-  # Ni <- graphics:::hist(Z, breaks = breaks, plot = FALSE)$counts
+  ## get number of return in strata
   Ni <- cut(Z, breaks = breaks) |>
     table() |>
     c()
@@ -57,7 +56,6 @@
   NRD[is.nan(NRD)] <- 0
   ## NRD estimation  ----
   # Ni +1 et N +2 pour les cas où Ni=0 ou NRD=1 => NRDc de l'equations 23 et 24 de Pimont et al 2018
-  # TODO: check this
   i_NRDc <- NRD %in% c(0, 1)
   NRD[i_NRDc] <- (Ni[i_NRDc] + 1) / (N[i_NRDc] + 2)
 
@@ -66,16 +64,21 @@
 
   if (scanning_angle) {
     ## calculates component of  vector U (plane -> point). To take into account scanning angle in PAD estimation ----
-    norm_U <- sqrt((X - Easting)^2 + (Y - Northing)^2 + (Zref - Elevation)^2)
-    # Nx_U <- abs((X - Easting) / norm_U)
-    # Ny_U <- abs((Y - Northing) / norm_U)
-    Nz_U <- abs((Zref - Elevation) / norm_U)
+    # TODO: check this
+    # no abs as we don't want to have flight_agl < 0
+    flight_agl <- Elevation - Zref
+    norm_U <- sqrt((X - Easting)^2 + (Y - Northing)^2 + flight_agl^2)
+    Nz_U <- flight_agl / norm_U
   } else {
     Nz_U <- 1
+    flight_agl <- limit_flight_height
     norm_U <- 999999
   }
 
   ### Exception if the mean of norm_U < limit_flight_height For LiDAr HD 1000m mean that plane flew lower than 1000m over the plot => unlikely for LiDAR HD => probably error in trajectory reconstruction
+  # TODO: check this:
+  #   - should it be mean(flight_agl, na.rm = TRUE) < limit_flight_height ? any chance to have flight_agl = NA ?
+  #   - could we rename this param limit_flight_agl ?
   if (mean(norm_U, na.rm = TRUE) < limit_flight_height) {
     warning("NULL return: limit_flight_height below the threshold. Check your trajectory and avoid using scanning_angle mode if the trajectory is uncertain")
     return(NULL)

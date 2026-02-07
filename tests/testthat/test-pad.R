@@ -16,7 +16,7 @@ test_that("pad", {
     {
       pad_rast <- lidR::pixel_metrics(nlas, pad_metrics(), res = 10)
     },
-    regexp = "NULL return: The number of point < limit_N_points: check the pointcloud",
+    regexp = "NULL return: the number of points < limit_N_points. Check the point cloud.",
     fixed = TRUE
   )
 
