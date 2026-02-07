@@ -13,9 +13,12 @@
   }
 
   date <- mean(gpstime)
+  # first returns covers
   cover_f_h <- sum(ReturnNumber[Z > height_cover] == 1) / sum(ReturnNumber == 1)
   cover_f_4 <- sum(ReturnNumber[Z > 4] == 1) / sum(ReturnNumber == 1)
   cover_f_6 <- sum(ReturnNumber[Z > 6] == 1) / sum(ReturnNumber == 1)
+  # compute "NRD" cover, i.e. all returns above height_cover
+  cover_a_h <- sum(Z > height_cover) / length(Z)
 
   ## Create a sequence to make strata  ----
   if (is.null(nlayers)) {
@@ -34,16 +37,15 @@
   # min z of each layer
   min_layer <- breaks[-length(breaks)]
 
-  # compute "NRD" cover, i.e. all returns above height_cover
-  cover_a_h <- sum(Z > height_cover) / length(Z)
-
   # TODO: check this
   if (is.null(cover_type)) {
     cover_pad <- NULL
   } else if (cover_type == "all") {
     cover_pad <- cover_a_h
-  } else {
+  } else if (cover_type == "first") {
     cover_pad <- cover_f_h
+  } else {
+    stop("cover_type must be 'all', 'first' or NULL")
   }
 
   # remove first layer useless for the rest
@@ -94,6 +96,7 @@
       PAD <- -(log(Gf) * cos_theta / (G * omega) / dz)
       warning(paste0("Cover method was not use as Cover = 0"))
     } else if (height_cover >= max(Z)) {
+      # TODO: check if ever reach that if... might not if cover_pad=NULL when height_cover >= max(Z)
       PAD <- -(log(Gf) * cos_theta / (G * omega) / dz)
       warning(paste0("Cover method was not use as height_cover > Vegetation Height"))
     } else {
