@@ -1,28 +1,59 @@
 .pad_metrics <- function(
   gpstime, X, Y, Z, Zref, ReturnNumber,
   Easting, Northing, Elevation,
-  res_z = 1, min_z = 0, max_z = 60, height_cover = 2,
+  z0 = 0, dz = 1, nlayers = 60, height_cover = 2,
   G = 0.5, omega = 0.77,
-  scanning_angle = TRUE, use_cover = FALSE,
+  scanning_angle = TRUE, cover_type = "NRD",
   limit_N_points = 400, limit_flight_height = 800,
   keep_N = FALSE
 ) {
-  Cover <- length(which(ReturnNumber[which(Z > height_cover)] == 1)) / length(which(ReturnNumber == 1))
+  if (length(Z) < limit_N_points) {
+    warning("NULL return: The number of point < limit_N_points: check the pointcloud")
+    return(NULL)
+  }
+
+  date <- mean(gpstime)
+  cover_f_h <- sum(ReturnNumber[Z > height_cover] == 1) / sum(ReturnNumber == 1)
+  cover_f_4 <- sum(ReturnNumber[Z > 4] == 1) / sum(ReturnNumber == 1)
+  cover_f_6 <- sum(ReturnNumber[Z > 6] == 1) / sum(ReturnNumber == 1)
 
   ## Create a sequence to make strata  ----
-  # TODO: check this --> no need of max(Z) here
-  # consider max_z as the max border of the profile:
-  # i.e. do not create a layer starting at max_z
-  max_layer <- plyr::round_any(max_z, res_z, ceiling)
-  seq_layer <- c(-Inf, seq(min_z, max_layer, res_z))
+  if (is.null(nlayers)) {
+    z_max_pad <- plyr::round_any(max(Z), dz, ceiling)
+  } else {
+    z_max_pad <- z0 + dz * nlayers
+  }
+
+  breaks <- c(-Inf, seq(z0, z_max_pad, dz))
   ## hist to get number of return in strata  ----
-  Ni <- graphics::hist(Z, breaks = seq_layer, plot = FALSE)$counts
+  # Ni <- graphics:::hist(Z, breaks = breaks, plot = FALSE)$counts
+  Ni <- cut(Z, breaks = breaks) |>
+    table() |>
+    c()
   N <- cumsum(Ni)
-  # remove useless first layer
+
+  # min z of each layer
+  min_layer <- breaks[-length(breaks)]
+
+  # compute "NRD" cover, i.e. all returns above height_cover
+  cover_a_h <- sum(Z > height_cover) / length(Z)
+
+  # TODO: check this
+  if (is.null(cover_type)) {
+    cover_pad <- NULL
+  } else if (cover_type == "all") {
+    cover_pad <- cover_a_h
+  } else {
+    cover_pad <- cover_f_h
+  }
+
+  # remove first layer useless for the rest
   Ni <- Ni[-1]
   N <- N[-1]
+  min_layer <- min_layer[-1]
 
   NRD <- Ni / N
+  # case of Ni=0 and N=0
   NRD[is.nan(NRD)] <- 0
   ## NRD estimation  ----
   # Ni +1 et N +2 pour les cas où Ni=0 ou NRD=1 => NRDc de l'equations 23 et 24 de Pimont et al 2018
@@ -50,74 +81,88 @@
     return(NULL)
   }
 
-  ### remove the bottom & top values of the seq
-  seq_layer <- seq_layer[-c(1, length(seq_layer))]
 
   ### cos theta take into account scanning angle
   cos_theta <- mean(abs(Nz_U))
 
-  G <- G # Leaf projection angle
-  res_z <- res_z # strata depth
-  omega <- omega # Clumping factor. 1= Random distribution = < 1 = clumped
   ## Plant area density calculation (actually FAD --> fuel area density: leaves + twigs) ----
-
-  if (use_cover == TRUE) {
-    if (Cover == 0) {
-      PAD <- -(log(Gf) * cos_theta / (G * omega) / res_z)
+  if (!is.null(cover_pad)) {
+    if (cover_pad == 0) {
+      PAD <- -(log(Gf) * cos_theta / (G * omega) / dz)
       warning(paste0("Cover method was not use as Cover = 0"))
-    } else if (height_cover >= max(seq_layer)) {
-      PAD <- -(log(Gf) * cos_theta / (G * omega) / res_z)
+    } else if (height_cover >= max(Z)) {
+      PAD <- -(log(Gf) * cos_theta / (G * omega) / dz)
       warning(paste0("Cover method was not use as height_cover > Vegetation Height"))
     } else {
-      PAD <- (-log(1 - Ni / (N * Cover)) / (G * omega * (res_z / cos_theta))) * Cover
+      PAD <- (-log(1 - Ni / (N * cover_pad)) / (G * omega * (dz / cos_theta))) * cover_pad
     }
   } else {
-    PAD <- -(log(Gf) * cos_theta / (G * omega) / res_z)
+    PAD <- -(log(Gf) * cos_theta / (G * omega) / dz)
   }
 
   # set PAD to 0 for upper strata with no points
-  # TODO: check this
-  min_empty <- plyr::round_any(max(Z), res_z, ceiling)
-  PAD[seq_layer >= min_empty] <- 0
+  min_empty <- plyr::round_any(max(Z), dz, ceiling)
+  PAD[min_layer >= min_empty] <- 0
 
-  # add d/2 to get the middle height of the strata for each stratum
-  pad_names <- paste("PAD_", (seq_layer + (res_z / 2)), "m", sep = "")
-  names(PAD) <- pad_names
+  intervals <- names(PAD)
+  names(PAD) <- paste0("PAD_", intervals, "m")
   output <- as.list(PAD)
 
   if (keep_N) {
-    ni_names <- paste("Ni_", (seq_layer + (res_z / 2)), "m", sep = "")
-    names(Ni) <- ni_names
-
-    n_names <- paste("N_", (seq_layer + (res_z / 2)), "m", sep = "")
-    names(N) <- n_names
+    names(Ni) <- paste0("Ni_", intervals, "m")
+    names(N) <- paste0("N_", intervals, "m")
 
     output <- c(output, as.list(Ni))
     output <- c(output, as.list(N))
   }
 
+  output <- c(
+    output, list(
+      # TODO: check this, maybe cover should only of one type to be coherent
+      Cover_NRD = cover_a_h,
+      Cover = cover_f_h, Cover_4 = cover_f_4, Cover_6 = cover_f_6,
+      date = date
+    )
+  )
   return(output)
 }
 
+
+#' Compute PAD metrics
+#'
+#' @param z0 numeric. Default = 0. Minimum height of the first layer in meters.
+#' @param dz numeric. Default = 1. Height of a layer in meters.
+#' @param nlayers numeric. Default = 60. Number of layers.
+#' @param G numeric. Default = 0.5. Leaf projection ratio.
+#' @param omega numeric. clumping factor.
+#' Default is 1.
+#' Value 1 means "no clumping" and therefore assumes a homogeneous distribution of vegetation element in the strata.
+#' Value < 1 means clumping.
+#' @param scanning_angle logical. Default = TRUE. Use the scanning angle computed from the trajectories to estimate cos(theta). If false: cos(theta) = 1
+#' @param height_cover numeric. Default = 2. The height from which the canopy cover should be estimated.
+#' @param cover_type character. Default = "all". Should all, first or no returns be considered for cover estimation.
+#' Accepted values are be "all", "first" or NULL. If NULL, cover estimation is not used in PAD computation.
+#' @param limit_N_points numeric. Default = 400. minimum number of point in the pixel/plot for computing profiles & metrics.
 pad_metrics <- function(
-  res_z = 1, min_z = 0, max_z = 60, height_cover = 2,
+  z0 = 0, dz = 1, nlayers = 60,
   G = 0.5, omega = 0.77,
-  scanning_angle = TRUE, use_cover = FALSE,
+  scanning_angle = TRUE,
+  height_cover = 2, cover_type = "NRD",
   limit_N_points = 400, limit_flight_height = 800, keep_N = FALSE
 ) {
   fun <- substitute(
     ~ .pad_metrics(
       gpstime, X, Y, Z, Zref, ReturnNumber,
       Easting, Northing, Elevation,
-      res_z = res_z, min_z = min_z, max_z = max_z, height_cover = eval(height_cover),
+      z0 = z0, dz = dz, nlayers = nlayers, height_cover = eval(height_cover),
       G = G, omega = omega,
-      scanning_angle = scanning_angle, use_cover = use_cover,
+      scanning_angle = scanning_angle, cover_type = cover_type,
       limit_N_points = limit_N_points, limit_flight_height = limit_flight_height,
       keep_N = keep_N
     ), list(
-      res_z = res_z, min_z = min_z, max_z = max_z, height_cover = height_cover,
+      z0 = z0, dz = dz, nlayers = nlayers, height_cover = height_cover,
       G = G, omega = omega,
-      scanning_angle = scanning_angle, use_cover = use_cover,
+      scanning_angle = scanning_angle, cover_type = cover_type,
       limit_N_points = limit_N_points, limit_flight_height = limit_flight_height,
       keep_N = keep_N
     )
