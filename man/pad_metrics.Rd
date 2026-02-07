@@ -57,7 +57,7 @@ This function computes PAD metrics from a lidar point cloud preprocessed output.
 }
 \examples{
 \donttest{
- las_file <- system.file("extdata", "example.laz", package = "rlas")
+ las_file <-   system.file("extdata", "M30_FontBlanche.laz", package = "lidarforfuel")
  las <- lidR::readLAS(las_file)
  # In real life, traj should be done computed with buffer to avoid border effects
  traj <- get_traj(las)
