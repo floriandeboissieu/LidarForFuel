@@ -70,20 +70,17 @@
     # no abs as we don't want to have flight_agl < 0
     flight_agl <- Elevation - Zref
     norm_U <- sqrt((X - Easting)^2 + (Y - Northing)^2 + flight_agl^2)
+    ### Exception if the mean of norm_U < limit_flight_height For LiDAr HD 1000m mean that plane flew lower than 1000m over the plot => unlikely for LiDAR HD => probably error in trajectory reconstruction
+    # TODO: check this:
+    #   - should it be mean(flight_agl, na.rm = TRUE) < limit_flight_height ? any chance to have flight_agl = NA ?
+    #   - could we rename this param limit_flight_agl ?
+    if (mean(norm_U, na.rm = TRUE) < limit_flight_height) {
+      warning("NULL return: limit_flight_height below the threshold. Check your trajectory and avoid using scanning_angle mode if the trajectory is uncertain")
+      return(NULL)
+    }
     Nz_U <- flight_agl / norm_U
   } else {
     Nz_U <- 1
-    flight_agl <- limit_flight_height
-    norm_U <- 999999
-  }
-
-  ### Exception if the mean of norm_U < limit_flight_height For LiDAr HD 1000m mean that plane flew lower than 1000m over the plot => unlikely for LiDAR HD => probably error in trajectory reconstruction
-  # TODO: check this:
-  #   - should it be mean(flight_agl, na.rm = TRUE) < limit_flight_height ? any chance to have flight_agl = NA ?
-  #   - could we rename this param limit_flight_agl ?
-  if (mean(norm_U, na.rm = TRUE) < limit_flight_height) {
-    warning("NULL return: limit_flight_height below the threshold. Check your trajectory and avoid using scanning_angle mode if the trajectory is uncertain")
-    return(NULL)
   }
 
 
@@ -153,7 +150,7 @@ pad_metrics <- function(
   z0 = 0, dz = 1, nlayers = 60,
   G = 0.5, omega = 0.77,
   scanning_angle = TRUE,
-  height_cover = 2, cover_type = "NRD",
+  height_cover = 2, cover_type = "all",
   limit_N_points = 400, limit_flight_height = 800, keep_N = FALSE
 ) {
   fun <- substitute(
