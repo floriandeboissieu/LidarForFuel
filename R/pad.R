@@ -164,6 +164,8 @@
 #'  traj <- get_traj(las)
 #'  nlas <- fPCpretreatment(las, traj = traj)
 #'  pad <- lidR::cloud_metrics(nlas, pad_metrics(z0 = 0, dz = 0.5, nlayers = 120))
+#'  # or
+#'  pad_rast <- lidR::pixel_metrics(nlas, pad_metrics(), res = 10)
 #' }
 #' @export
 pad_metrics <- function(
