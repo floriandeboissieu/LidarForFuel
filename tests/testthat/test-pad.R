@@ -29,7 +29,7 @@ test_that("pad", {
   })
   expect_true(terra::nlyr(pad_rast) == (60 * 3 + 5))
 
-
+  # check names are correctly written to file
   tmpfile <- withr::local_tempfile(fileext = ".tif")
   terra::writeRaster(pad_rast, tmpfile, gdal = c("COMPRESS=DEFLATE"))
   expect_true(file.exists(tmpfile))
