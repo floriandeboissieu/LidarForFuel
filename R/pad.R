@@ -133,6 +133,7 @@
 
 #' Compute PAD metrics
 #'
+#' @description This function computes PAD metrics from a lidar point cloud preprocessed output.
 #' @param z0 numeric. Default = 0. Minimum height of the first layer in meters.
 #' @param dz numeric. Default = 1. Height of a layer in meters.
 #' @param nlayers numeric. Default = 60. Number of layers.
@@ -146,6 +147,25 @@
 #' @param cover_type character. Default = "all". Should all, first or no returns be considered for cover estimation.
 #' Accepted values are be "all", "first" or NULL. If NULL, cover estimation is not used in PAD computation.
 #' @param limit_N_points numeric. Default = 400. minimum number of point in the pixel/plot for computing profiles & metrics.
+#' @param limit_flight_height numeric. Default = 800. Limit flight height above ground in m. If the flight height is lower than
+#' limit_flight_height, NULL is returned.
+#' This limit serves as a safeguard to eliminate cases where the trajectory reconstruction would be outlier.
+#' @param keep_N logical. Default = FALSE. Keep the number of entering rays (N) and the number of hits (Ni) in each layer.
+#'
+#' @return A list of PAD metrics
+#' PAD layers, 5 Cover layers and mean gpstime
+#' If keep_N = TRUE, the list also contains Ni and N layers.
+#'
+#' @examples
+#' \donttest{
+#'  las_file <- system.file("extdata", "example.laz", package = "rlas")
+#'  las <- lidR::readLAS(las_file)
+#'  # In real life, traj should be done computed with buffer to avoid border effects
+#'  traj <- get_traj(las)
+#'  nlas <- fPCpretreatment(las, traj = traj)
+#'  pad <- lidR::cloud_metrics(nlas, pad_metrics(z0 = 0, dz = 0.5, nlayers = 120))
+#' }
+#' @export
 pad_metrics <- function(
   z0 = 0, dz = 1, nlayers = 60,
   G = 0.5, omega = 0.77,
