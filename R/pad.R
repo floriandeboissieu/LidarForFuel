@@ -3,7 +3,7 @@
   Easting, Northing, Elevation,
   z0 = 0, dz = 1, nlayers = 60, height_cover = 2,
   G = 0.5, omega = 0.77,
-  scanning_angle = TRUE, cover_type = "NRD",
+  scanning_angle = TRUE, cover_type = "all",
   limit_N_points = 400, limit_flight_height = 800,
   keep_N = FALSE
 ) {
@@ -73,8 +73,8 @@
     ### Exception if the mean of norm_U < limit_flight_height For LiDAr HD 1000m mean that plane flew lower than 1000m over the plot => unlikely for LiDAR HD => probably error in trajectory reconstruction
     # TODO: check this:
     #   - should it be mean(flight_agl, na.rm = TRUE) < limit_flight_height ? any chance to have flight_agl = NA ?
-    #   - could we rename this param limit_flight_agl ?
-    if (mean(norm_U, na.rm = TRUE) < limit_flight_height) {
+    #   - could we rename this param limit_flight_agl ? ok
+    if (mean(flight_agl, na.rm = TRUE) < limit_flight_height) {
       warning("NULL return: limit_flight_height below the threshold. Check your trajectory and avoid using scanning_angle mode if the trajectory is uncertain")
       return(NULL)
     }
@@ -89,13 +89,12 @@
 
   ## Plant area density calculation (actually FAD --> fuel area density: leaves + twigs) ----
   if (!is.null(cover_pad)) {
+    if (height_cover >= max(Z)) {
+      warning(paste0("height_cover > maximum vegetation height"))
+    }
     if (cover_pad == 0) {
       PAD <- -(log(Gf) * cos_theta / (G * omega) / dz)
       warning(paste0("Cover method was not use as Cover = 0"))
-    } else if (height_cover >= max(Z)) {
-      # TODO: check if ever reach that if... might not if cover_pad=NULL when height_cover >= max(Z)
-      PAD <- -(log(Gf) * cos_theta / (G * omega) / dz)
-      warning(paste0("Cover method was not use as height_cover > Vegetation Height"))
     } else {
       PAD <- (-log(1 - Ni / (N * cover_pad)) / (G * omega * (dz / cos_theta))) * cover_pad
     }
@@ -158,14 +157,14 @@
 #'
 #' @examples
 #' \donttest{
-#'  las_file <-   system.file("extdata", "M30_FontBlanche.laz", package = "lidarforfuel")
-#'  las <- lidR::readLAS(las_file)
-#'  # In real life, traj should be done computed with buffer to avoid border effects
-#'  traj <- get_traj(las)
-#'  nlas <- fPCpretreatment(las, traj = traj)
-#'  pad <- lidR::cloud_metrics(nlas, pad_metrics(z0 = 0, dz = 0.5, nlayers = 120))
-#'  # or
-#'  pad_rast <- lidR::pixel_metrics(nlas, pad_metrics(), res = 10)
+#' las_file <- system.file("extdata", "M30_FontBlanche.laz", package = "lidarforfuel")
+#' las <- lidR::readLAS(las_file)
+#' # In real life, traj should be done computed with buffer to avoid border effects
+#' traj <- get_traj(las)
+#' nlas <- fPCpretreatment(las, traj = traj)
+#' pad <- lidR::cloud_metrics(nlas, pad_metrics(z0 = 0, dz = 0.5, nlayers = 120))
+#' # or
+#' pad_rast <- lidR::pixel_metrics(nlas, pad_metrics(), res = 10)
 #' }
 #' @export
 pad_metrics <- function(
