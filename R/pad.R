@@ -156,10 +156,10 @@
 #' If keep_N = TRUE, the list also contains Ni and N layers.
 #'
 #' @examples
-#' \donttest{
+#' \dontrun{
 #' las_file <- system.file("extdata", "M30_FontBlanche.laz", package = "lidarforfuel")
 #' las <- lidR::readLAS(las_file)
-#' # In real life, traj should be done computed with buffer to avoid border effects
+#' # In real life, traj should be computed separately with buffer to avoid border effects
 #' traj <- get_traj(las)
 #' nlas <- fPCpretreatment(las, traj = traj)
 #' pad <- lidR::cloud_metrics(nlas, pad_metrics(z0 = 0, dz = 0.5, nlayers = 120))
