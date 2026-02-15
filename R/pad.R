@@ -1,3 +1,86 @@
+#' Compute PAD metrics
+#'
+#' @description This function computes PAD metrics from a lidar point cloud preprocessed output.
+#' The expected LAS attributes are: `gpstime`, `X`, `Y`, `Z`, `Zref`, `ReturnNumber`, `Easting`,
+#' `Northing`, `Elevation`.
+#' @param z0 numeric. Default = 0. Minimum height of the first layer in meters.
+#' @param dz numeric. Default = 1. Height of a layer in meters.
+#' @param nlayers numeric. Default = 60. Number of layers.
+#' @param G numeric. Default = 0.5. Leaf projection ratio.
+#' @param omega numeric. clumping factor.
+#' Default is 1.
+#' Value 1 means "no clumping" and therefore assumes a homogeneous distribution of vegetation element in the strata.
+#' Value < 1 means clumping.
+#' @param scanning_angle logical. Default = TRUE. Use the scanning angle computed from the trajectories to estimate cos(theta). If false: cos(theta) = 1
+#' @param cover_type character. Default = "all". Should all returns or only first returns be considered for cover estimation.
+#' Accepted values are be "all" or "first".
+#' @param height_cover numeric. Default = 2. The height from which the canopy cover should be estimated.
+#' @param use_cover logical. Default = FALSE. Use cover for PAD estimates.
+#' @param limit_N_points numeric. Default = 400. minimum number of point in the pixel/plot for computing profiles & metrics.
+#' @param limit_flight_agl numeric. Default = 800. Limit flight height above ground in m. If the distance between the flight height and the ground
+#' and (Elevation - Zref) is lower than `limit_flight_agl`, NULL is returned.
+#' This limit serves as a safeguard to eliminate cases where the trajectory reconstruction would be outlier.
+#' @param keep_N logical. Default = FALSE. Keep the number of entering rays (N) and the number of hits (Ni) in each layer.
+#'
+#' @return
+#' \itemize{
+#'   \item `pad_metrics`: a formula for lidR::xxx_metrics functions
+#'   \item `.pad_metrics`: a list of PAD metrics, see below.
+#' }
+#'
+#' The list of PAD metrics includes:
+#' \itemize{
+#'   \item PAD layers from `z0` to `z0 + nlayers * dz`,
+#'   \item Cover layers at `height_cover`, 4m and 6m
+#'   \item date as the mean gpstime
+#' }
+#'
+#' If keep_N = TRUE, the list also contains Ni and N layers at same heights than PAD layers.
+#'
+#' @examples
+#' \dontrun{
+#' las_file <- system.file("extdata", "M30_FontBlanche.laz", package = "lidarforfuel")
+#' las <- lidR::readLAS(las_file)
+#' # In real life, traj should be computed separately with buffer to avoid border effects
+#' traj <- get_traj(las)
+#' nlas <- fPCpretreatment(las, traj = traj)
+#' pad <- lidR::cloud_metrics(nlas, pad_metrics(z0 = 0, dz = 0.5, nlayers = 120))
+#' # or
+#' pad_rast <- lidR::pixel_metrics(nlas, pad_metrics(), res = 10)
+#' }
+#' @name pad_metrics
+#' @export
+pad_metrics <- function(
+  z0 = 0, dz = 1, nlayers = 60,
+  G = 0.5, omega = 0.77,
+  scanning_angle = TRUE,
+  cover_type = "all", height_cover = 2, use_cover = TRUE,
+  limit_N_points = 400, limit_flight_agl = 800, keep_N = FALSE
+) {
+  fun <- substitute(
+    ~ .pad_metrics(
+      gpstime, X, Y, Z, Zref, ReturnNumber,
+      Easting, Northing, Elevation,
+      z0 = z0, dz = dz, nlayers = nlayers, G = G, omega = omega,
+      scanning_angle = scanning_angle,
+      cover_type = cover_type, height_cover = height_cover, use_cover = use_cover,
+      limit_N_points = limit_N_points, limit_flight_agl = limit_flight_agl,
+      keep_N = keep_N
+    ), list(
+      z0 = z0, dz = dz, nlayers = nlayers, G = G, omega = omega,
+      scanning_angle = scanning_angle,
+      cover_type = cover_type, height_cover = height_cover, use_cover = use_cover,
+      limit_N_points = limit_N_points, limit_flight_agl = limit_flight_agl,
+      keep_N = keep_N
+    )
+  ) |> stats::as.formula()
+
+  return(fun)
+}
+
+#' @rdname pad_metrics
+#'
+#' @export
 .pad_metrics <- function(
   gpstime, X, Y, Z, Zref, ReturnNumber,
   Easting, Northing, Elevation,
@@ -120,77 +203,4 @@
     list(date = date)
   )
   return(output)
-}
-
-
-#' Compute PAD metrics
-#'
-#' @description This function computes PAD metrics from a lidar point cloud preprocessed output.
-#' The following LAS attributes are expected: gpstime, X, Y, Z, Zref, ReturnNumber, Easting, Northing, Elevation.
-#' @param z0 numeric. Default = 0. Minimum height of the first layer in meters.
-#' @param dz numeric. Default = 1. Height of a layer in meters.
-#' @param nlayers numeric. Default = 60. Number of layers.
-#' @param G numeric. Default = 0.5. Leaf projection ratio.
-#' @param omega numeric. clumping factor.
-#' Default is 1.
-#' Value 1 means "no clumping" and therefore assumes a homogeneous distribution of vegetation element in the strata.
-#' Value < 1 means clumping.
-#' @param scanning_angle logical. Default = TRUE. Use the scanning angle computed from the trajectories to estimate cos(theta). If false: cos(theta) = 1
-#' @param cover_type character. Default = "all". Should all returns or only first returns be considered for cover estimation.
-#' Accepted values are be "all" or "first".
-#' @param height_cover numeric. Default = 2. The height from which the canopy cover should be estimated.
-#' @param use_cover logical. Default = FALSE. Use cover for PAD estimates.
-#' @param limit_N_points numeric. Default = 400. minimum number of point in the pixel/plot for computing profiles & metrics.
-#' @param limit_flight_agl numeric. Default = 800. Limit flight height above ground in m. If the distance between the flight height and the ground
-#' and (Elevation - Zref) is lower than `limit_flight_agl`, NULL is returned.
-#' This limit serves as a safeguard to eliminate cases where the trajectory reconstruction would be outlier.
-#' @param keep_N logical. Default = FALSE. Keep the number of entering rays (N) and the number of hits (Ni) in each layer.
-#'
-#' @return A list of PAD metrics including:
-#' \itemize{
-#'   \item PAD layers from z0 to z0 + nlayers * dz,
-#'   \item Cover layers at \code{height_cover}, 4m and 6m
-#'   \item date as the mean gpstime
-#' }
-#'
-#' If keep_N = TRUE, the list also contains Ni and N layers at same heights than PAD layers.
-#'
-#' @examples
-#' \dontrun{
-#' las_file <- system.file("extdata", "M30_FontBlanche.laz", package = "lidarforfuel")
-#' las <- lidR::readLAS(las_file)
-#' # In real life, traj should be computed separately with buffer to avoid border effects
-#' traj <- get_traj(las)
-#' nlas <- fPCpretreatment(las, traj = traj)
-#' pad <- lidR::cloud_metrics(nlas, pad_metrics(z0 = 0, dz = 0.5, nlayers = 120))
-#' # or
-#' pad_rast <- lidR::pixel_metrics(nlas, pad_metrics(), res = 10)
-#' }
-#' @export
-pad_metrics <- function(
-  z0 = 0, dz = 1, nlayers = 60,
-  G = 0.5, omega = 0.77,
-  scanning_angle = TRUE,
-  cover_type = "all", height_cover = 2, use_cover = TRUE,
-  limit_N_points = 400, limit_flight_agl = 800, keep_N = FALSE
-) {
-  fun <- substitute(
-    ~ .pad_metrics(
-      gpstime, X, Y, Z, Zref, ReturnNumber,
-      Easting, Northing, Elevation,
-      z0 = z0, dz = dz, nlayers = nlayers, G = G, omega = omega,
-      scanning_angle = scanning_angle,
-      cover_type = cover_type, height_cover = height_cover, use_cover = use_cover,
-      limit_N_points = limit_N_points, limit_flight_agl = limit_flight_agl,
-      keep_N = keep_N
-    ), list(
-      z0 = z0, dz = dz, nlayers = nlayers, G = G, omega = omega,
-      scanning_angle = scanning_angle,
-      cover_type = cover_type, height_cover = height_cover, use_cover = use_cover,
-      limit_N_points = limit_N_points, limit_flight_agl = limit_flight_agl,
-      keep_N = keep_N
-    )
-  ) |> as.formula()
-
-  return(fun)
 }

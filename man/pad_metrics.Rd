@@ -2,9 +2,34 @@
 % Please edit documentation in R/pad.R
 \name{pad_metrics}
 \alias{pad_metrics}
+\alias{.pad_metrics}
 \title{Compute PAD metrics}
 \usage{
 pad_metrics(
+  z0 = 0,
+  dz = 1,
+  nlayers = 60,
+  G = 0.5,
+  omega = 0.77,
+  scanning_angle = TRUE,
+  cover_type = "all",
+  height_cover = 2,
+  use_cover = TRUE,
+  limit_N_points = 400,
+  limit_flight_agl = 800,
+  keep_N = FALSE
+)
+
+.pad_metrics(
+  gpstime,
+  X,
+  Y,
+  Z,
+  Zref,
+  ReturnNumber,
+  Easting,
+  Northing,
+  Elevation,
   z0 = 0,
   dz = 1,
   nlayers = 60,
@@ -45,24 +70,30 @@ Accepted values are be "all" or "first".}
 \item{limit_N_points}{numeric. Default = 400. minimum number of point in the pixel/plot for computing profiles & metrics.}
 
 \item{limit_flight_agl}{numeric. Default = 800. Limit flight height above ground in m. If the distance between the flight height and the ground
-and (Elevation - Zref) is lower than `limit_flight_agl`, NULL is returned.
+and (Elevation - Zref) is lower than \code{limit_flight_agl}, NULL is returned.
 This limit serves as a safeguard to eliminate cases where the trajectory reconstruction would be outlier.}
 
 \item{keep_N}{logical. Default = FALSE. Keep the number of entering rays (N) and the number of hits (Ni) in each layer.}
 }
 \value{
-A list of PAD metrics including:
 \itemize{
-  \item PAD layers from z0 to z0 + nlayers * dz,
-  \item Cover layers at \code{height_cover}, 4m and 6m
-  \item date as the mean gpstime
+\item \code{pad_metrics}: a formula for lidR::xxx_metrics functions
+\item \code{.pad_metrics}: a list of PAD metrics, see below.
+}
+
+The list of PAD metrics includes:
+\itemize{
+\item PAD layers from \code{z0} to \code{z0 + nlayers * dz},
+\item Cover layers at \code{height_cover}, 4m and 6m
+\item date as the mean gpstime
 }
 
 If keep_N = TRUE, the list also contains Ni and N layers at same heights than PAD layers.
 }
 \description{
 This function computes PAD metrics from a lidar point cloud preprocessed output.
-The following LAS attributes are expected: gpstime, X, Y, Z, Zref, ReturnNumber, Easting, Northing, Elevation.
+The expected LAS attributes are: \code{gpstime}, \code{X}, \code{Y}, \code{Z}, \code{Zref}, \code{ReturnNumber}, \code{Easting},
+\code{Northing}, \code{Elevation}.
 }
 \examples{
 \dontrun{
