@@ -11,10 +11,11 @@ pad_metrics(
   G = 0.5,
   omega = 0.77,
   scanning_angle = TRUE,
-  height_cover = 2,
   cover_type = "all",
+  height_cover = 2,
+  use_cover = TRUE,
   limit_N_points = 400,
-  limit_flight_height = 800,
+  limit_flight_agl = 800,
   keep_N = FALSE
 )
 }
@@ -34,26 +35,34 @@ Value < 1 means clumping.}
 
 \item{scanning_angle}{logical. Default = TRUE. Use the scanning angle computed from the trajectories to estimate cos(theta). If false: cos(theta) = 1}
 
+\item{cover_type}{character. Default = "all". Should all returns or only first returns be considered for cover estimation.
+Accepted values are be "all" or "first".}
+
 \item{height_cover}{numeric. Default = 2. The height from which the canopy cover should be estimated.}
 
-\item{cover_type}{character. Default = "all". Should all, first or no returns be considered for cover estimation.
-Accepted values are be "all", "first" or NULL. If NULL, cover estimation is not used in PAD computation.}
+\item{use_cover}{logical. Default = FALSE. Use cover for PAD estimates.}
 
 \item{limit_N_points}{numeric. Default = 400. minimum number of point in the pixel/plot for computing profiles & metrics.}
 
-\item{limit_flight_height}{numeric. Default = 800. Limit flight height above ground in m. If the flight height is lower than
-limit_flight_height, NULL is returned.
+\item{limit_flight_agl}{numeric. Default = 800. Limit flight height above ground in m. If the distance between the flight height and the ground
+and (Elevation - Zref) is lower than `limit_flight_agl`, NULL is returned.
 This limit serves as a safeguard to eliminate cases where the trajectory reconstruction would be outlier.}
 
 \item{keep_N}{logical. Default = FALSE. Keep the number of entering rays (N) and the number of hits (Ni) in each layer.}
 }
 \value{
-A list of PAD metrics
-PAD layers, 5 Cover layers and mean gpstime
-If keep_N = TRUE, the list also contains Ni and N layers.
+A list of PAD metrics including:
+\itemize{
+  \item PAD layers from z0 to z0 + nlayers * dz,
+  \item Cover layers at \code{height_cover}, 4m and 6m
+  \item date as the mean gpstime
+}
+
+If keep_N = TRUE, the list also contains Ni and N layers at same heights than PAD layers.
 }
 \description{
 This function computes PAD metrics from a lidar point cloud preprocessed output.
+The following LAS attributes are expected: gpstime, X, Y, Z, Zref, ReturnNumber, Easting, Northing, Elevation.
 }
 \examples{
 \dontrun{

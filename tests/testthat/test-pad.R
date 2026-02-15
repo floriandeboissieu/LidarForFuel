@@ -7,9 +7,22 @@ test_that("pad", {
   # cloud metrics
   pad <- lidR::cloud_metrics(nlas, pad_metrics(z0 = 0, dz = 0.5, nlayers = 120)) |>
     unlist()
-  expect_length(pad, 120 + 5)
+  expect_length(pad, 120 + 4)
   expect_true(names(pad[120]) == "PAD_(59.5,60]m")
   expect_true(pad["PAD_(17,17.5]m"] == 0)
+  expect_all_true(c("Cover", "Cover_4m", "Cover_6m", "date") %in% names(pad))
+
+  pad <- lidR::cloud_metrics(nlas, pad_metrics(use_cover = FALSE)) |>
+    unlist()
+
+  pad <- lidR::cloud_metrics(nlas, pad_metrics(z0 = 0, dz = 0.5, nlayers = 2)) |>
+    unlist()
+  expect_all_true(names(pad) == c("PAD_(0,0.5]m", "PAD_(0.5,1]m", "Cover", "Cover_4m", "Cover_6m", "date"))
+
+  pad <- lidR::cloud_metrics(nlas, pad_metrics(use_cover = FALSE)) |>
+    unlist()
+  expect_all_true(c("Cover", "Cover_4m", "Cover_6m", "date") %in% names(pad))
+
 
   # pixel metrics
   expect_warning(
@@ -21,13 +34,13 @@ test_that("pad", {
   )
 
   expect_all_true(terra::res(pad_rast) == c(10, 10))
-  expect_true(terra::nlyr(pad_rast) == (60 + 5))
+  expect_true(terra::nlyr(pad_rast) == (60 + 4))
 
   # test with Ni
   expect_warning({
     pad_rast <- lidR::pixel_metrics(nlas, pad_metrics(keep_N = TRUE), res = 10)
   })
-  expect_true(terra::nlyr(pad_rast) == (60 * 3 + 5))
+  expect_true(terra::nlyr(pad_rast) == (60 * 3 + 4))
 
   # check names are correctly written to file
   tmpfile <- withr::local_tempfile(fileext = ".tif")

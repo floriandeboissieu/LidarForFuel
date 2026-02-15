@@ -1,10 +1,11 @@
 .pad_metrics <- function(
   gpstime, X, Y, Z, Zref, ReturnNumber,
   Easting, Northing, Elevation,
-  z0 = 0, dz = 1, nlayers = 60, height_cover = 2,
+  z0 = 0, dz = 1, nlayers = 60,
   G = 0.5, omega = 0.77,
-  scanning_angle = TRUE, cover_type = "all",
-  limit_N_points = 400, limit_flight_height = 800,
+  scanning_angle = TRUE,
+  cover_type = "all", height_cover = 2, use_cover = TRUE,
+  limit_N_points = 400, limit_flight_agl = 800,
   keep_N = FALSE
 ) {
   if (length(Z) < limit_N_points) {
@@ -12,13 +13,20 @@
     return(NULL)
   }
 
-  date <- mean(gpstime)
-  # first returns covers
-  cover_f_h <- sum(ReturnNumber[Z > height_cover] == 1) / sum(ReturnNumber == 1)
-  cover_f_4 <- sum(ReturnNumber[Z > 4] == 1) / sum(ReturnNumber == 1)
-  cover_f_6 <- sum(ReturnNumber[Z > 6] == 1) / sum(ReturnNumber == 1)
-  # compute "NRD" cover, i.e. all returns above height_cover
-  cover_a_h <- sum(Z > height_cover) / length(Z)
+  if (scanning_angle) {
+    ## calculates component of  vector U (plane -> point). To take into account scanning angle in PAD estimation ----
+    # no abs as we don't want to have flight_agl < 0
+    flight_agl <- Elevation - Zref
+    norm_U <- sqrt((X - Easting)^2 + (Y - Northing)^2 + flight_agl^2)
+    ### Exception if the mean of norm_U < limit_flight_agl For LiDAr HD 1000m mean that plane flew lower than 1000m over the plot => unlikely for LiDAR HD => probably error in trajectory reconstruction
+    if (mean(flight_agl, na.rm = TRUE) < limit_flight_agl) {
+      warning("NULL return: limit_flight_agl below the threshold. Check your trajectory and avoid using scanning_angle mode if the trajectory is uncertain")
+      return(NULL)
+    }
+    Nz_U <- flight_agl / norm_U
+  } else {
+    Nz_U <- 1
+  }
 
   ## Create a sequence to make strata  ----
   if (is.null(nlayers)) {
@@ -37,17 +45,6 @@
   # min z of each layer
   min_layer <- breaks[-length(breaks)]
 
-  # TODO: check this
-  if (is.null(cover_type)) {
-    cover_pad <- NULL
-  } else if (cover_type == "all") {
-    cover_pad <- cover_a_h
-  } else if (cover_type == "first") {
-    cover_pad <- cover_f_h
-  } else {
-    stop("cover_type must be 'all', 'first' or NULL")
-  }
-
   # remove first layer useless for the rest
   Ni <- Ni[-1]
   N <- N[-1]
@@ -64,42 +61,39 @@
   ## Gap fraction estimation ----
   Gf <- 1 - NRD
 
-  if (scanning_angle) {
-    ## calculates component of  vector U (plane -> point). To take into account scanning angle in PAD estimation ----
-    # TODO: check this
-    # no abs as we don't want to have flight_agl < 0
-    flight_agl <- Elevation - Zref
-    norm_U <- sqrt((X - Easting)^2 + (Y - Northing)^2 + flight_agl^2)
-    ### Exception if the mean of norm_U < limit_flight_height For LiDAr HD 1000m mean that plane flew lower than 1000m over the plot => unlikely for LiDAR HD => probably error in trajectory reconstruction
-    # TODO: check this:
-    #   - should it be mean(flight_agl, na.rm = TRUE) < limit_flight_height ? any chance to have flight_agl = NA ?
-    #   - could we rename this param limit_flight_agl ? ok
-    if (mean(flight_agl, na.rm = TRUE) < limit_flight_height) {
-      warning("NULL return: limit_flight_height below the threshold. Check your trajectory and avoid using scanning_angle mode if the trajectory is uncertain")
-      return(NULL)
-    }
-    Nz_U <- flight_agl / norm_U
-  } else {
-    Nz_U <- 1
-  }
-
 
   ### cos theta take into account scanning angle
   cos_theta <- mean(abs(Nz_U))
 
   ## Plant area density calculation (actually FAD --> fuel area density: leaves + twigs) ----
-  if (!is.null(cover_pad)) {
+  if (cover_type == "first") {
+    # first returns covers
+    first_returns <- ReturnNumber == 1
+    N_f <- sum(first_returns)
+    cover_h <- sum(first_returns[Z > height_cover]) / N_f
+    cover_4 <- sum(first_returns[Z > 4]) / N_f
+    cover_6 <- sum(first_returns[Z > 6]) / N_f
+  } else if (cover_type == "all") {
+    # compute "NRD" cover, i.e. all returns above height_cover
+    cover_h <- sum(Z > height_cover) / length(Z)
+    cover_4 <- sum(Z > 4) / length(Z)
+    cover_6 <- sum(Z > 6) / length(Z)
+  } else {
+    stop("cover_type must be 'all' or 'first'")
+  }
+
+  if (use_cover) {
+    PAD <- -(log(Gf) * cos_theta / (G * omega) / dz)
+  } else {
     if (height_cover >= max(Z)) {
       warning(paste0("height_cover > maximum vegetation height"))
     }
-    if (cover_pad == 0) {
+    if (cover_h == 0) {
       PAD <- -(log(Gf) * cos_theta / (G * omega) / dz)
       warning(paste0("Cover method was not use as Cover = 0"))
     } else {
-      PAD <- (-log(1 - Ni / (N * cover_pad)) / (G * omega * (dz / cos_theta))) * cover_pad
+      PAD <- (-log(1 - Ni / (N * cover_h)) / (G * omega * (dz / cos_theta))) * cover_h
     }
-  } else {
-    PAD <- -(log(Gf) * cos_theta / (G * omega) / dz)
   }
 
   # set PAD to 0 for upper strata with no points
@@ -118,13 +112,12 @@
     output <- c(output, as.list(N))
   }
 
+  date <- mean(gpstime)
+
   output <- c(
-    output, list(
-      # TODO: check this, maybe cover should only of one type to be coherent
-      Cover_NRD = cover_a_h,
-      Cover = cover_f_h, Cover_4 = cover_f_4, Cover_6 = cover_f_6,
-      date = date
-    )
+    output,
+    list(Cover = cover_h, Cover_4m = cover_4, Cover_6m = cover_6),
+    list(date = date)
   )
   return(output)
 }
@@ -133,6 +126,7 @@
 #' Compute PAD metrics
 #'
 #' @description This function computes PAD metrics from a lidar point cloud preprocessed output.
+#' The following LAS attributes are expected: gpstime, X, Y, Z, Zref, ReturnNumber, Easting, Northing, Elevation.
 #' @param z0 numeric. Default = 0. Minimum height of the first layer in meters.
 #' @param dz numeric. Default = 1. Height of a layer in meters.
 #' @param nlayers numeric. Default = 60. Number of layers.
@@ -142,18 +136,24 @@
 #' Value 1 means "no clumping" and therefore assumes a homogeneous distribution of vegetation element in the strata.
 #' Value < 1 means clumping.
 #' @param scanning_angle logical. Default = TRUE. Use the scanning angle computed from the trajectories to estimate cos(theta). If false: cos(theta) = 1
+#' @param cover_type character. Default = "all". Should all returns or only first returns be considered for cover estimation.
+#' Accepted values are be "all" or "first".
 #' @param height_cover numeric. Default = 2. The height from which the canopy cover should be estimated.
-#' @param cover_type character. Default = "all". Should all, first or no returns be considered for cover estimation.
-#' Accepted values are be "all", "first" or NULL. If NULL, cover estimation is not used in PAD computation.
+#' @param use_cover logical. Default = FALSE. Use cover for PAD estimates.
 #' @param limit_N_points numeric. Default = 400. minimum number of point in the pixel/plot for computing profiles & metrics.
-#' @param limit_flight_height numeric. Default = 800. Limit flight height above ground in m. If the flight height is lower than
-#' limit_flight_height, NULL is returned.
+#' @param limit_flight_agl numeric. Default = 800. Limit flight height above ground in m. If the distance between the flight height and the ground
+#' and (Elevation - Zref) is lower than `limit_flight_agl`, NULL is returned.
 #' This limit serves as a safeguard to eliminate cases where the trajectory reconstruction would be outlier.
 #' @param keep_N logical. Default = FALSE. Keep the number of entering rays (N) and the number of hits (Ni) in each layer.
 #'
-#' @return A list of PAD metrics
-#' PAD layers, 5 Cover layers and mean gpstime
-#' If keep_N = TRUE, the list also contains Ni and N layers.
+#' @return A list of PAD metrics including:
+#' \itemize{
+#'   \item PAD layers from z0 to z0 + nlayers * dz,
+#'   \item Cover layers at \code{height_cover}, 4m and 6m
+#'   \item date as the mean gpstime
+#' }
+#'
+#' If keep_N = TRUE, the list also contains Ni and N layers at same heights than PAD layers.
 #'
 #' @examples
 #' \dontrun{
@@ -171,23 +171,23 @@ pad_metrics <- function(
   z0 = 0, dz = 1, nlayers = 60,
   G = 0.5, omega = 0.77,
   scanning_angle = TRUE,
-  height_cover = 2, cover_type = "all",
-  limit_N_points = 400, limit_flight_height = 800, keep_N = FALSE
+  cover_type = "all", height_cover = 2, use_cover = TRUE,
+  limit_N_points = 400, limit_flight_agl = 800, keep_N = FALSE
 ) {
   fun <- substitute(
     ~ .pad_metrics(
       gpstime, X, Y, Z, Zref, ReturnNumber,
       Easting, Northing, Elevation,
-      z0 = z0, dz = dz, nlayers = nlayers, height_cover = eval(height_cover),
-      G = G, omega = omega,
-      scanning_angle = scanning_angle, cover_type = cover_type,
-      limit_N_points = limit_N_points, limit_flight_height = limit_flight_height,
+      z0 = z0, dz = dz, nlayers = nlayers, G = G, omega = omega,
+      scanning_angle = scanning_angle,
+      cover_type = cover_type, height_cover = height_cover, use_cover = use_cover,
+      limit_N_points = limit_N_points, limit_flight_agl = limit_flight_agl,
       keep_N = keep_N
     ), list(
-      z0 = z0, dz = dz, nlayers = nlayers, height_cover = height_cover,
-      G = G, omega = omega,
-      scanning_angle = scanning_angle, cover_type = cover_type,
-      limit_N_points = limit_N_points, limit_flight_height = limit_flight_height,
+      z0 = z0, dz = dz, nlayers = nlayers, G = G, omega = omega,
+      scanning_angle = scanning_angle,
+      cover_type = cover_type, height_cover = height_cover, use_cover = use_cover,
+      limit_N_points = limit_N_points, limit_flight_agl = limit_flight_agl,
       keep_N = keep_N
     )
   ) |> as.formula()
