@@ -183,13 +183,15 @@ pad_metrics <- function(
   min_empty <- plyr::round_any(max(Z), dz, ceiling)
   PAD[min_layer >= min_empty] <- 0
 
-  intervals <- names(PAD)
-  names(PAD) <- paste0("PAD_", intervals, "m")
+  intervals <- names(PAD) |>
+    gsub("(\\(|\\[|\\]|\\))", "", x=_)
+
+  names(PAD) <- paste0("PAD_", intervals)
   output <- as.list(PAD)
 
   if (keep_N) {
-    names(Ni) <- paste0("Ni_", intervals, "m")
-    names(N) <- paste0("N_", intervals, "m")
+    names(Ni) <- paste0("Ni_", intervals)
+    names(N) <- paste0("N_", intervals)
 
     output <- c(output, as.list(Ni))
     output <- c(output, as.list(N))
@@ -199,7 +201,7 @@ pad_metrics <- function(
 
   output <- c(
     output,
-    list(Cover = cover_h, Cover_4m = cover_4, Cover_6m = cover_6),
+    list(Cover = cover_h, Cover_4 = cover_4, Cover_6 = cover_6),
     list(date = date)
   )
   return(output)
