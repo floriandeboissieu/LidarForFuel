@@ -184,7 +184,8 @@ pad_metrics <- function(
   PAD[min_layer >= min_empty] <- 0
 
   intervals <- names(PAD) |>
-    gsub("(\\(|\\[|\\]|\\))", "", x=_)
+    gsub("(\\(|\\[|\\]|\\))", "", x=_) |>
+    gsub(",", "_", x=_)
 
   names(PAD) <- paste0("PAD_", intervals)
   output <- as.list(PAD)
