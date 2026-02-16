@@ -30,9 +30,9 @@
 #'
 #' The list of PAD metrics includes:
 #' \itemize{
-#'   \item PAD layers from `z0` to `z0 + nlayers * dz`,
-#'   \item Cover layers at `height_cover`, 4m and 6m
 #'   \item date as the mean gpstime
+#'   \item Cover layers at `height_cover`, 4m and 6m
+#'   \item PAD layers from `z0` to `z0 + nlayers * dz`,
 #' }
 #'
 #' If keep_N = TRUE, the list also contains Ni and N layers at same heights than PAD layers.
@@ -201,9 +201,9 @@ pad_metrics <- function(
   date <- mean(gpstime)
 
   output <- c(
-    output,
+    list(date = date),
     list(Cover = cover_h, Cover_4 = cover_4, Cover_6 = cover_6),
-    list(date = date)
+    output
   )
   return(output)
 }

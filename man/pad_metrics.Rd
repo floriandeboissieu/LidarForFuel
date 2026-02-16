@@ -83,9 +83,9 @@ This limit serves as a safeguard to eliminate cases where the trajectory reconst
 
 The list of PAD metrics includes:
 \itemize{
-\item PAD layers from \code{z0} to \code{z0 + nlayers * dz},
-\item Cover layers at \code{height_cover}, 4m and 6m
 \item date as the mean gpstime
+\item Cover layers at \code{height_cover}, 4m and 6m
+\item PAD layers from \code{z0} to \code{z0 + nlayers * dz},
 }
 
 If keep_N = TRUE, the list also contains Ni and N layers at same heights than PAD layers.

@@ -8,7 +8,7 @@ test_that("pad", {
   pad <- lidR::cloud_metrics(nlas, pad_metrics(z0 = 0, dz = 0.5, nlayers = 120)) |>
     unlist()
   expect_length(pad, 120 + 4)
-  expect_true(names(pad[120]) == "PAD_59.5_60")
+  expect_true(names(pad[length(pad)]) == "PAD_59.5_60")
   expect_true(pad["PAD_17_17.5"] == 0)
   expect_all_true(c("Cover", "Cover_4", "Cover_6", "date") %in% names(pad))
 
@@ -17,11 +17,11 @@ test_that("pad", {
 
   pad <- lidR::cloud_metrics(nlas, pad_metrics(z0 = 0, dz = 0.5, nlayers = 2)) |>
     unlist()
-  expect_all_true(names(pad) == c("PAD_0_0.5", "PAD_0.5_1", "Cover", "Cover_4", "Cover_6", "date"))
+  expect_all_true(names(pad) == c("date", "Cover", "Cover_4", "Cover_6", "PAD_0_0.5", "PAD_0.5_1"))
 
   pad <- lidR::cloud_metrics(nlas, pad_metrics(use_cover = FALSE)) |>
     unlist()
-  expect_all_true(c("Cover", "Cover_4", "Cover_6", "date") %in% names(pad))
+  expect_all_true(c("date", "Cover", "Cover_4", "Cover_6") %in% names(pad))
 
 
   # pixel metrics
