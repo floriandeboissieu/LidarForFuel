@@ -43,7 +43,6 @@ get_traj <- function(
   renum = TRUE,
   multi_pulse = TRUE
 ) {
-  X <- Y <- Z <- gpstime <- PointSourceID <- NULL
 
   if (thin > 0) {
     # thinning pulses before rmdup
@@ -53,6 +52,10 @@ get_traj <- function(
     times <- data[, first(gpstime), by = ftime]$V1
     data <- data[gpstime %in% times]
     las@data <- data
+  }
+
+  if (!"UserData" %in% names(las@data)) {
+    multi_pulse <- FALSE
   }
 
   if (rmdup) {
